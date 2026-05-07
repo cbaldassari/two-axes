@@ -54,6 +54,9 @@ paper/*.lot
 # Claude Code
 .claude/
 
+# Paper (kept local, not in repo)
+paper/
+
 # Trash
 trash/
 
