@@ -1,0 +1,90 @@
+<mxfile host="app.diagrams.net" modified="2026-05-03" agent="Claude" version="1.0">
+  <diagram name="Pipeline" id="pipeline-v8">
+    <mxGraphModel dx="900" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- BOX 1: HOURLY LMP -->
+        <mxCell id="b1" value="&lt;b&gt;HOURLY LMP&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="175" y="20" width="250" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b1" target="b2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 2: PREPROCESSING -->
+        <mxCell id="b2" value="&lt;b&gt;PREPROCESSING&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#333333;fontSize=13;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="175" y="110" width="250" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a2a" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b2" target="b3a">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b2" target="b3b">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 3a: FEATURE ENGINEERING -->
+        <mxCell id="b3a" value="&lt;b&gt;A: FEATURE&lt;br&gt;ENGINEERING&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#333333;fontSize=12;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="170" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 3b: MOMENT -->
+        <mxCell id="b3b" value="&lt;b&gt;B: MOMENT&lt;br&gt;ENCODER&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#333333;fontSize=12;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="370" y="210" width="170" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a3a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b3a" target="b4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3b4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b3b" target="b4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 4: DIFFUSION MAPS -->
+        <mxCell id="b4" value="&lt;b&gt;DIFFUSION MAPS&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#333333;fontSize=13;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="175" y="320" width="250" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b4" target="b5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 5: ToMATo CLUSTERING -->
+        <mxCell id="b5" value="&lt;b&gt;ToMATo CLUSTERING&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#333333;fontSize=13;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="175" y="410" width="250" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b5" target="b6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 6: TUKEY HSD MERGE -->
+        <mxCell id="b6" value="&lt;b&gt;TUKEY HSD MERGE&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#333333;fontSize=13;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="175" y="500" width="250" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="b6" target="b7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 7: FINAL REGIMES -->
+        <mxCell id="b7" value="&lt;b&gt;FINAL REGIMES&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#333333;fontSize=13;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="175" y="590" width="250" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#c62828;dashed=1;" edge="1" parent="1" source="b7" target="b8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BOX 8: KEY FINDING -->
+        <mxCell id="b8" value="&lt;b&gt;&lt;font color=&quot;#c62828&quot;&gt;TWO INDEPENDENT AXES&lt;/font&gt;&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontColor=#333333;fontSize=12;verticalAlign=middle;arcSize=20;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="175" y="680" width="250" height="45" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
