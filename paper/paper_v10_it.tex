@@ -116,7 +116,8 @@ Lavori più recenti hanno esplorato K-means e clustering spettrale \citep{rintam
 Questi approcci condividono due limiti strutturali.
 Primo, la struttura viene imposta dall'alto: il numero di stati, la famiglia distributiva e tutti i parametri sono fissati prima di vedere i dati.
 Secondo, e più sottilmente, ciascuna famiglia cattura implicitamente una dimensione diversa del mercato: HMM e GMM separano i \emph{livelli di prezzo}, i modelli mean-reverting descrivono la \emph{dinamica temporale}.
-Ma nessun approccio si chiede se queste due dimensioni siano governate dallo stesso processo latente o da processi indipendenti --- la domanda viene semplicemente elusa, e un'unica etichetta di stato collassa livello e dinamica in una sola variabile.
+La letteratura ha ampiamente documentato che entrambe le dimensioni presentano struttura: il volatility clustering, uno degli stylized fact più robusti dei mercati finanziari \citep{cont2001}, è presente anche nei prezzi elettrici, e gli spike tendono ad aggregarsi in cluster persistenti piuttosto che presentarsi isolati \citep{christensen2009}.
+Tuttavia, nessun approccio si chiede se queste due dimensioni siano governate dallo stesso processo latente o da processi indipendenti: la domanda viene semplicemente elusa, e un'unica etichetta di stato collassa livello e dinamica in una sola variabile.
 Come osservato da \citet{weron2014} in una rassegna completa, l'identificazione dei regimi resta ``uno dei problemi più impegnativi del settore''.
 
 % --- 1.3 La natura multidimensionale dei regimi ---
@@ -127,7 +128,8 @@ La prima è il \emph{livello di prezzo}: quanto è costosa l'elettricità in que
 La seconda è la \emph{dinamica dei prezzi}: come si comporta il prezzo nel tempo --- ritorna rapidamente al suo livello normale dopo uno shock, oppure lo shock persiste per giorni?
 Queste due dimensioni portano informazioni diverse.
 Un mercato a \$100/MWh che tornerà a \$50 entro poche ore pone un rischio diverso da un mercato a \$100/MWh che resterà elevato per due settimane, eppure un'unica etichetta di regime (``spike'') confonde i due casi.
-I modelli regime-switching esistenti \citep{huisman2003} assegnano un singolo stato latente che governa simultaneamente sia il livello di prezzo sia la dinamica della volatilità, assumendo implicitamente che le due dimensioni siano guidate dallo stesso processo.
+Che la dinamica intra-giornaliera dei prezzi elettrici sia eterogenea è stato documentato empiricamente \citep{karakatsani2008, knittel2005}: la velocità con cui il mercato assorbe uno shock varia nel tempo e tra condizioni operative diverse.
+Tuttavia, i modelli regime-switching esistenti \citep{huisman2003} assegnano un singolo stato latente che governa simultaneamente sia il livello di prezzo sia la dinamica della volatilità, assumendo implicitamente che le due dimensioni siano guidate dallo stesso processo.
 Se questa assunzione sia valida, se cioè livello e dinamica siano effettivamente accoppiati o varino indipendentemente, è una domanda empirica che non è stata testata.
 
 % --- 1.4 Nuovi strumenti ---
