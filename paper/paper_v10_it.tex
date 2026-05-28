@@ -131,10 +131,12 @@ Un mercato a \$100/MWh che tornerà a \$50 entro poche ore pone un rischio diver
 Che la dinamica intra-giornaliera dei prezzi elettrici sia eterogenea è stato documentato empiricamente \citep{karakatsani2008, knittel2005}: la velocità con cui il mercato assorbe uno shock varia nel tempo e tra condizioni operative diverse.
 Tuttavia, i modelli regime-switching esistenti \citep{huisman2003} assegnano un singolo stato latente che governa simultaneamente sia il livello di prezzo sia la dinamica della volatilità, assumendo implicitamente che le due dimensioni siano guidate dallo stesso processo.
 Se questa assunzione sia valida, se cioè livello e dinamica siano effettivamente accoppiati o varino indipendentemente, è una domanda empirica che non è stata testata.
+In sintesi, la letteratura ha accumulato evidenza che sia la volatilità sia la persistenza dei prezzi elettrici presentano una struttura propria, ma non ha mai verificato se questa struttura sia indipendente dal livello di prezzo.
+Questo lavoro colma esattamente questo gap.
 
 % --- 1.4 Nuovi strumenti ---
 
-Due sviluppi recenti creano l'opportunità di testarla, e, aspetto cruciale, di farlo in modo interamente non supervisionato e guidato dai dati, eliminando ogni possibilità che scelte soggettive predeterminino il risultato.
+Due sviluppi recenti creano l'opportunità di testare questa ipotesi, e, aspetto cruciale, di farlo in modo interamente non supervisionato e guidato dai dati, eliminando ogni possibilità che scelte soggettive predeterminino il risultato.
 Primo, i foundation model per serie temporali \citep{yeh2023}.
 Un foundation model è una rete neurale di grandi dimensioni addestrata una sola volta su un corpus molto vasto e diversificato, centinaia di migliaia di serie temporali da domini eterogenei (meteorologia, finanza, sanità, ingegneria), e poi riutilizzabile su qualsiasi nuova serie senza alcun addestramento aggiuntivo.
 Questo pre-addestramento su larga scala costituisce il valore centrale dei foundation model: l'enorme diversità di pattern temporali osservati durante l'addestramento (trend, stagionalità, persistenza, cambi di regime, code pesanti) viene condensata nei parametri della rete, creando un patrimonio di conoscenze trasferibile a qualsiasi nuovo dominio applicativo.
