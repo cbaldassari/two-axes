@@ -827,11 +827,20 @@ D8 & 0,936 & 0,478 & 75,0 &   64 &  0,9 \\
 \end{table}
 
 Tre aspetti meritano discussione.
-Primo, i due regimi dominanti --- $D_0$ (38,6\%) e $D_2$ (33,3\%) --- coprono insieme il 72\% delle finestre. Il mercato trascorre la maggior parte del tempo in condizioni di persistenza moderata-alta (ACF 0,68--0,75), con escursioni meno frequenti verso regimi a rapida reversione ($D_7$, ACF $= 0{,}38$) o shock molto persistenti ($D_8$, ACF $= 0{,}94$).
+
+Primo, i due regimi dominanti, $D_0$ (38,6\%) e $D_2$ (33,3\%), coprono insieme il 72\% delle finestre.
+Il mercato trascorre la maggior parte del tempo in condizioni di persistenza moderata-alta (ACF 0,68--0,75), con escursioni meno frequenti verso regimi a rapida reversione ($D_7$, ACF $= 0{,}38$) o shock molto persistenti ($D_8$, ACF $= 0{,}94$).
+Questa distribuzione asimmetrica è coerente con la letteratura sulla dinamica intra-giornaliera dei prezzi elettrici \citep{karakatsani2008}, che documenta come i periodi di stress rappresentino una frazione minoritaria ma economicamente critica del tempo di mercato.
+
 Secondo, i regimi dinamici non sono un sottoprodotto dell'asse economico: conoscere il regime di prezzo di una finestra non predice il suo regime di persistenza, come confermato formalmente dall'ARI quasi nullo nella Sezione~\ref{sec:two_axes}.
+Aspetto cruciale, il livello di prezzo non è monotono attraverso i regimi dinamici: $D_4$ e $D_7$, con ACF molto diversa (0,51 e 0,38), hanno LMP medi simili (\$35--\$37/MWh).
+Questo conferma che l'asse dinamico cattura una dimensione genuinamente indipendente dal prezzo, non un suo sottoprodotto.
+
 Terzo, la volatilità ($\sigma_r$) cresce con la persistenza: i regimi a rapida reversione hanno $\sigma_r \approx 0{,}12$, i più persistenti $\sigma_r \approx 0{,}48$.
-Questo accoppiamento persistenza--volatilità è coerente con il volatility clustering nei mercati finanziari, ma qui viene catturato come proprietà strutturale del regime piuttosto che come effetto autoregressivo.
-Questo è atteso --- la persistenza temporale può variare più rapidamente del livello di prezzo sottostante --- ma i regimi sono comunque temporalmente coerenti alla scala sub-giornaliera, non rumore casuale.
+Questo accoppiamento persistenza--volatilità richiama uno degli stylized fact più robusti dei mercati finanziari, il volatility clustering \citep{cont2001}: periodi di alta volatilità tendono a raggrupparsi e a persistere nel tempo.
+Nei mercati finanziari tradizionali, questo fenomeno è tipicamente modellato come effetto autoregressivo della varianza condizionata (GARCH).
+Qui, invece, emerge come proprietà strutturale del regime: non è la volatilità di ieri a predire quella di oggi, ma è lo stato fisico del sistema (congestioni, inerzia del parco di generazione, vincoli di rampa) a determinare simultaneamente sia la persistenza sia l'ampiezza degli shock.
+La letteratura sulla persistenza degli spike nei mercati elettrici \citep{christensen2009} ha documentato come gli eventi estremi tendano ad aggregarsi in cluster piuttosto che presentarsi isolati, un fenomeno coerente con i regimi ad alta persistenza ($D_3$, $D_8$) che osserviamo.
 
 
 % ── 5.3 Struttura a due assi ───────────────────────────────────────────────────
