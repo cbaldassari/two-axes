@@ -627,8 +627,16 @@ Gli autovettori dominanti di $T$ forniscono le coordinate di diffusione:
 \label{eq:diffusion_coordinates}
 \end{equation}
 La dimensionalità $d$ è determinata dallo stesso criterio per entrambi i rami: il \textbf{gap spettrale} degli autovalori.
-Per FE, il gap è netto tra $\lambda_2$ e $\lambda_3$ (rapporto 2,26), dando $d = 2$.
-Per MOMENT, un plateau ($\lambda_3$--$\lambda_5$, rapporto $\approx 1{,}05$) indica segnale residuo; il gap successivo è a $\lambda_5/\lambda_6 = 1{,}41$, dando $d = 5$.
+Per FE, il gap è netto tra $\lambda_2$ e $\lambda_3$ (rapporto 1,89), dando $d = 2$.
+Per MOMENT, un plateau ($\lambda_3$--$\lambda_5$, rapporti $\approx 1{,}04$--$1{,}08$) indica segnale residuo; il gap successivo è a $\lambda_5/\lambda_6 = 1{,}41$, dando $d = 5$.
+La Figura~\ref{fig:spectral_gap} mostra il decadimento degli autovalori per entrambe le rappresentazioni: le barre indicano l'importanza di ciascuna coordinata di diffusione e la linea rossa segna il punto dove il segnale cede al rumore.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{spectral_gap.png}
+\caption{Gap spettrale delle Diffusion Maps. Ogni barra rappresenta un autovalore (coordinata di diffusione), ordinato per importanza decrescente. A sinistra (FE): il salto netto dopo $\lambda_2$ indica che due coordinate bastano a catturare la struttura. A destra (MOMENT): le coordinate 3--5 formano un plateau di valori simili (tutte contribuiscono al segnale), seguito da un salto dopo $\lambda_5$ che segna il confine con il rumore. La linea rossa tratteggiata indica la dimensionalità scelta ($d = 2$ per FE, $d = 5$ per MOMENT).}
+\label{fig:spectral_gap}
+\end{figure}
 
 \paragraph{ToMATo.}
 Applichiamo ToMATo (Topological Mode Analysis Tool) \citep{chazal2013} per identificare i modi di densità.
