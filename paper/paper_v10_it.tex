@@ -869,29 +869,25 @@ Se invece le due partizioni discordano --- se conoscere il regime di prezzo di u
 Ne servono due: una per il livello di prezzo e una per la dinamica.
 
 % --- ARI ---
-Per rispondere a questa domanda, serve un singolo numero che riassuma quanto le due partizioni si sovrappongono.
-Utilizziamo l'Adjusted Rand Index (ARI) \citep{hubert1985}.
-L'idea è diretta: se due finestre finiscono nello stesso regime economico, tendono anche a finire nello stesso regime dinamico?
-Se sì, le due partizioni sono ridondanti --- dividono i dati in modi simili.
-Se no, sono indipendenti --- ciascuna raggruppa le finestre secondo un proprio criterio, ignorando ciò che fa l'altra.
-L'ARI cattura questo come un numero tra 0 e 1, corretto in modo che la concordanza casuale valga 0 e la concordanza perfetta valga 1.
-Formalmente, sia $n_{ij}$ il numero di finestre assegnate al regime economico $i$ e al regime dinamico $j$, e siano $a_i = \sum_j n_{ij}$ e $b_j = \sum_i n_{ij}$ i totali di riga e colonna.
-L'ARI è
-\begin{equation}
-\text{ARI} = \frac{\sum_{ij}\binom{n_{ij}}{2} - \left[\sum_i\binom{a_i}{2}\sum_j\binom{b_j}{2}\right]\!/\!\binom{n}{2}}{\frac{1}{2}\!\left[\sum_i\binom{a_i}{2}+\sum_j\binom{b_j}{2}\right] - \left[\sum_i\binom{a_i}{2}\sum_j\binom{b_j}{2}\right]\!/\!\binom{n}{2}}.
-\label{eq:ari}
-\end{equation}
-Il numeratore conta le concordanze tra coppie oltre il caso; il denominatore normalizza per il massimo eccesso possibile.
+Per rispondere a questa domanda, utilizziamo l'Adjusted Rand Index (ARI) \citep{hubert1985}, una misura di concordanza tra due partizioni.
+L'ARI vale~1 quando le due partizioni sono identiche (ogni regime economico corrisponde esattamente a un regime dinamico), vale~0 quando la concordanza non supera quella attesa per caso, e può assumere valori negativi se le partizioni concordano meno del caso.
 
 L'ARI tra le partizioni economica e dinamica è \textbf{0,012}.
 
-Questo valore è molto vicino a zero --- ben al di sotto della soglia di 0,5 tipicamente considerata indicativa di concordanza significativa.
-In termini pratici, significa che conoscere il regime economico di una finestra non ci dice quasi nulla sul suo regime dinamico, e viceversa.
+Questo valore, praticamente zero, significa che conoscere il regime economico di una finestra non dice quasi nulla sul suo regime dinamico, e viceversa.
+La Figura~\ref{fig:ari_grid} rende visivo il significato di questo numero: se le due partizioni fossero concordi (ARI alto), le finestre si concentrerebbero lungo la diagonale della griglia $E \times D$; invece si distribuiscono in modo diffuso, popolando 70 delle 81 celle possibili.
 Una finestra nel regime di spike estremo $E_1$ può trovarsi in 7 dei 9 regimi dinamici; una finestra nel regime più persistente $D_8$ può trovarsi in 7 dei 9 regimi economici.
 I due assi organizzano le stesse finestre in modi fondamentalmente diversi.
 Chiamiamo questa proprietà \emph{quasi-ortogonalità}.
 
-Il valore dell'ARI è la prima di tre linee di evidenza indipendenti a supporto di questa quasi-ortogonalità.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.58\textwidth]{two_axis_grid.png}
+\caption{Griglia dei regimi $E \times D$. Ogni cella rappresenta una combinazione prezzo--persistenza; l'intensità del colore indica il numero di finestre. Se i due assi fossero ridondanti (ARI $\approx 1$), le finestre si concentrerebbero sulla diagonale. La distribuzione diffusa (70 celle su 81 popolate, ARI $= 0{,}012$) conferma che i due assi sono quasi ortogonali.}
+\label{fig:ari_grid}
+\end{figure}
+
+L'ARI è la prima di tre linee di evidenza indipendenti a supporto di questa quasi-ortogonalità.
 
 % --- Evidenza 2: separazione visiva ---
 La seconda è visiva.
@@ -1152,19 +1148,14 @@ Le metriche temporali dell'asse dinamico non sono riportate perché i regimi $D$
 
 I due assi hanno conseguenze pratiche dirette.
 L'asse economico risponde a \emph{quanto} costa l'elettricità; l'asse dinamico risponde a \emph{come} si comporterà il prezzo nelle ore e nei giorni successivi.
-Tutte e quattro le combinazioni di prezzo alto/basso e mean-reversion rapida/lenta sono popolate (Figura~\ref{fig:two_axes}), ciascuna con un significato operativo distinto.
+Tutte e quattro le combinazioni di prezzo alto/basso e mean-reversion rapida/lenta sono popolate (Figura~\ref{fig:ari_grid}), ciascuna con un significato operativo distinto.
 Gli stati ad alto prezzo e rapida reversione (18\% delle finestre) sono spike transitori che si risolvono rapidamente; una copertura aggressiva pagherebbe troppo.
 Gli stati ad alto prezzo e shock-persistenti (32\%) sono eventi di stress prolungati, tipicamente ondate di freddo invernale, dove la copertura è giustificata e le riserve di emergenza possono esaurirsi.
 Gli stati a basso prezzo e rapida reversione (32\%) sono mercati calmi con clima mite dove le operazioni normali sono sufficienti.
 Gli stati a basso prezzo e sticky (18\%) sono periodi prolungati di prezzi moderati o bassi dove il rischio di curtailment delle rinnovabili è elevato e gli operatori di stoccaggio dovrebbero caricare.
 Un'etichetta convenzionale a singolo asse ``spike'' raggruppa eventi ad alto prezzo transitori e persistenti, anche se i loro profili di rischio sono qualitativamente diversi.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.58\textwidth]{two_axis_grid.png}
-\caption{Spazio dei regimi a due assi. Ogni quadrante rappresenta uno stato di mercato distinto. Tutti e quattro i quadranti sono popolati, confermando che livello di prezzo e persistenza variano indipendentemente.}
-\label{fig:two_axes}
-\end{figure}
+La griglia $E \times D$ (Figura~\ref{fig:ari_grid}) conferma che tutti e quattro i quadranti sono popolati.
 
 % --- Perché MOMENT cattura le dinamiche ---
 
