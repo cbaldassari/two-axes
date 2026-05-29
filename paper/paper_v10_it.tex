@@ -50,7 +50,7 @@
 \begin{abstract}
 I regimi del mercato elettrico vengono convenzionalmente descritti lungo una singola dimensione, il livello di prezzo.
 Dimostriamo che questa visione trascura un intero asse della struttura di mercato.
-Applicando una metodologia interamente non supervisionata e guidata dai dati, senza ipotesi sul numero di regimi, senza etichette fornite a priori e senza alcun parametro fissato in anticipo, a cinque anni di prezzi orari di ISO New England, scopriamo due assi statisticamente indipendenti di organizzazione dei regimi: è la struttura stessa dei dati a rivelare quanti regimi esistono e come si organizzano.
+Applicando una metodologia interamente non supervisionata e guidata dai dati, senza specificare a priori il numero di regimi né fornire etichette predefinite, a cinque anni di prezzi orari di ISO New England, scopriamo due assi quasi ortogonali di organizzazione dei regimi: è la struttura stessa dei dati a rivelare quanti regimi esistono e come si organizzano.
 Un asse economico, derivato da statistiche descrittive specifiche del dominio, separa i regimi per livello di prezzo, dall'off-peak allo spike estremo invernale.
 Un asse dinamico, derivato da una rete neurale pre-addestrata su centinaia di migliaia di serie temporali eterogenee e applicata senza alcun addestramento specifico sui dati elettrici, separa i regimi per persistenza temporale, dalla mean-reversion rapida agli stati in cui gli shock perdurano per giorni.
 I due assi sono praticamente indipendenti: conoscere il regime di prezzo non fornisce quasi alcuna informazione sul regime dinamico, e viceversa.
@@ -67,116 +67,64 @@ La struttura bidimensionale consente di costruire un modello mean-reverting cond
 \section{Introduzione}
 \label{sec:introduction}
 
-Il mercato elettrico è organizzato lungo due assi indipendenti, non uno.
+Il mercato elettrico è organizzato lungo due assi quasi ortogonali, non uno.
 Oltre al livello di prezzo, l'unica dimensione catturata dai modelli convenzionali, esiste un asse di persistenza temporale che determina quanto a lungo uno shock si propaga nel sistema.
 I due assi sono quasi ortogonali: conoscere il regime di prezzo non dice quasi nulla sulla velocità di mean-reversion, e viceversa.
-Questo lavoro scopre questa struttura bidimensionale attraverso una pipeline interamente non supervisionata e ne quantifica le conseguenze per la modellazione e la gestione del rischio.
+Questo lavoro scopre questa struttura bidimensionale attraverso una pipeline non supervisionata e ne quantifica le conseguenze per la modellazione e la gestione del rischio.
 
 % --- 1.1 Il contesto economico ---
 
-L'elettricità viene scambiata su mercati all'ingrosso dove il prezzo può cambiare ogni ora.
-A differenza del petrolio, del grano o di altre materie prime, l'elettricità non può essere immagazzinata in grandi quantità a costi ragionevoli: la capacità di batterie e pompaggio idroelettrico copre solo una piccola frazione della domanda totale.
-Di conseguenza, l'offerta deve eguagliare la domanda in ogni istante, e il prezzo riflette il costo dell'ultimo generatore necessario per mantenere il sistema in equilibrio.
+L'elettricità non può essere immagazzinata a costi ragionevoli: l'offerta deve eguagliare la domanda in ogni istante, e il prezzo riflette il costo dell'ultimo generatore necessario per mantenere il sistema in equilibrio.
+I generatori vengono ordinati per costo di produzione in una graduatoria nota come merit order: quando la domanda è bassa i generatori economici sono sufficienti e i prezzi sono bassi, quando la domanda sale o l'offerta diminuisce il sistema ricorre a unità progressivamente più costose e il prezzo sale di conseguenza \citep{weron2014}.
+Negli Stati Uniti, i mercati elettrici all'ingrosso sono gestiti da Independent System Operators (ISO) che compensano domanda e offerta attraverso aste centralizzate producendo un Locational Marginal Price (LMP) per ogni nodo della rete.
+Questo lavoro si concentra su ISO New England (ISONE), ma la metodologia è applicabile a qualsiasi mercato nodale che produca LMP orari.
 
-Questo generatore, chiamato generatore marginale, è l'unità più costosa attualmente dispacciata.
-In pratica, i generatori vengono ordinati per costo di produzione (dal più economico) in una graduatoria nota come merit order.
-Quando la domanda è bassa (notti, fine settimana, clima mite), i generatori di base economici (nucleare, grandi turbine a gas) sono sufficienti e i prezzi sono bassi.
-Quando la domanda sale (ondate di calore, ondate di freddo) o l'offerta diminuisce (guasti ai generatori), il sistema deve ricorrere a unità progressivamente più costose, peaker a gas e, nei casi estremi, generatori a olio combustibile, e il prezzo sale di conseguenza.
-Questo meccanismo è il motore fondamentale della formazione dei regimi \citep{weron2014}.
-
-Negli Stati Uniti, i mercati elettrici all'ingrosso sono gestiti da Regional Transmission Organizations (RTO) e Independent System Operators (ISO).
-Queste entità compensano domanda e offerta attraverso aste centralizzate che producono un Locational Marginal Price (LMP) per ogni nodo della rete di trasmissione.
-Attualmente operano sette di queste organizzazioni, coprendo la maggior parte del paese; questo lavoro si concentra su ISO New England (ISONE), che serve i sei stati del New England.
-La metodologia, tuttavia, non è specifica per ISONE e può essere applicata a qualsiasi mercato nodale che produca LMP orari.
-
-La serie LMP presenta proprietà statistiche che la distinguono dalla maggior parte degli asset finanziari: code pesanti (spike estremi di prezzo), mean-reversion a scale temporali multiple, tre cicli stagionali sovrapposti --- un ciclo giornaliero (domanda giorno/notte), un ciclo settimanale (giorno feriale/fine settimana), e un ciclo annuale (domanda di riscaldamento invernale e raffrescamento estivo) --- e valori occasionalmente negativi quando la generazione rinnovabile eccede la domanda \citep{ziel2018, weron2006}.
-Questi cambiamenti di regime sono guidati da una confluenza di fattori (estremi meteorologici, shock dei prezzi del combustibile, intermittenza delle rinnovabili, vincoli di trasmissione e guasti ai generatori) le cui interazioni producono la dinamica complessa e non stazionaria che rende il rilevamento dei regimi tanto importante quanto difficile.
-
-Identificare il regime di mercato prevalente ha conseguenze pratiche dirette.
-Per gli operatori di mercato, strategie di copertura regime-dipendenti possono ridurre il Value-at-Risk condizionando gli aggiustamenti di portafoglio allo stato corrente del mercato \citep{coulon2014}.
-Per gli operatori di sistema e i regolatori, la permanenza prolungata in regimi ad alto prezzo segnala potenziali carenze nella struttura del mercato o la necessità di interventi di espansione della capacità.
-Per i previsori, i modelli regime-switching superano costantemente i benchmark a stato singolo permettendo alla distribuzione condizionata dei prezzi di adattarsi all'ambiente operativo corrente \citep{janczura2013, nowotarski2018}.
+La serie LMP presenta proprietà statistiche che la distinguono dalla maggior parte degli asset finanziari: code pesanti, mean-reversion a scale temporali multiple, tre cicli stagionali sovrapposti (giornaliero, settimanale, annuale) e valori occasionalmente negativi \citep{ziel2018, weron2006}.
+Identificare il regime di mercato prevalente ha conseguenze pratiche dirette per la copertura del rischio \citep{coulon2014}, la pianificazione della capacità e la previsione dei prezzi \citep{janczura2013, nowotarski2018}.
 
 % --- 1.2 Approcci esistenti e loro limiti ---
 
-Il rilevamento non supervisionato dei regimi nei mercati elettrici resta una sfida metodologica aperta.
-La letteratura ha affrontato il problema con tre famiglie principali di modelli, ciascuna catturando un aspetto diverso della struttura di mercato ma ciascuna con limiti significativi.
+Il rilevamento non supervisionato dei regimi nei mercati elettrici resta una sfida aperta \citep{weron2014}.
+La letteratura ha affrontato il problema con tre famiglie principali di modelli.
+Gli Hidden Markov Models (HMM) \citep{mount2006, hamilton1989} e i Gaussian Mixture Models (GMM) \citep{kanamura2009} richiedono di specificare il numero di stati \emph{a priori} e assumono distribuzioni parametriche che mal si adattano alle code pesanti dei prezzi elettrici \citep{bierbrauer2007}.
+I modelli mean-reverting a salti \citep{lucia2002, cartea2005} catturano la tendenza dei prezzi a tornare verso un livello di equilibrio, ma vincolano la velocità di mean-reversion a essere omogenea o al più modulata dal regime di prezzo.
+Lavori più recenti hanno esplorato K-means e clustering spettrale \citep{rintamaki2017}, ma dipendono ancora da un $K$ pre-specificato.
 
-Gli \textbf{Hidden Markov Models} (HMM) \citep{mount2006, hamilton1989} identificano stati latenti e le transizioni tra essi, ma richiedono di specificare il numero di stati \emph{a priori} e assumono che le osservazioni all'interno di ciascuno stato seguano una distribuzione parametrica prefissata.
-\citet{janczura2013} hanno trovato che i modelli a tre stati con varianza eterogenea forniscono il miglior fit per i prezzi Nord Pool, ma i criteri di informazione (BIC, AIC), gli strumenti standard per la selezione del numero di stati, sono notoriamente inaffidabili quando il vero processo generatore si discosta dalla famiglia parametrica assunta, quasi una certezza con i prezzi elettrici a code pesanti \citep{bierbrauer2007}.
+Questi approcci condividono un limite profondo: ciascuna famiglia cattura implicitamente una dimensione diversa del mercato (HMM e GMM separano i \emph{livelli di prezzo}, i modelli mean-reverting descrivono la \emph{dinamica temporale}), ma nessuno si chiede se queste dimensioni siano governate dallo stesso processo latente o da processi indipendenti.
+La letteratura ha documentato che entrambe presentano struttura propria: il volatility clustering \citep{cont2001} è presente nei prezzi elettrici, gli spike si aggregano in cluster persistenti \citep{christensen2009}, e la velocità con cui il mercato assorbe uno shock varia nel tempo e tra condizioni operative diverse \citep{karakatsani2008, knittel2005}.
+Eppure, un'unica etichetta di stato continua a collassare livello e dinamica in una sola variabile.
 
-I \textbf{Gaussian Mixture Models} (GMM) \citep{kanamura2009} partizionano le osservazioni in cluster gaussiani e sono spesso usati per separare i livelli di prezzo (off-peak, normale, spike), ma dipendono anch'essi da un $K$ pre-specificato e assumono cluster convessi e simmetrici, ipotesi difficilmente sostenibili con le distribuzioni a code pesanti tipiche dei mercati elettrici.
+Un mercato a \$100/MWh che tornerà a \$50 entro poche ore pone un rischio diverso da un mercato a \$100/MWh che resterà elevato per due settimane, eppure un'unica etichetta ``spike'' confonde i due casi \citep{huisman2003}.
+La letteratura ha accumulato evidenza che sia la volatilità sia la persistenza presentano una struttura propria, ma non ha mai verificato se questa struttura sia indipendente dal livello di prezzo.
+Questo lavoro colma questo gap.
 
-I \textbf{modelli mean-reverting a salti} \citep{lucia2002, cartea2005} catturano la tendenza dei prezzi a tornare verso un livello di equilibrio e sono il framework dominante per la modellazione della \emph{dinamica} dei prezzi.
-Tuttavia, vincolano la velocità di mean-reversion a essere omogenea o al più modulata dal regime di prezzo: la possibilità che la velocità di mean-reversion vari indipendentemente dal livello non è contemplata.
-La scelta tra un singolo parametro di mean-reversion e un parametro per regime resta una decisione di specificazione, non un risultato empirico.
+% --- 1.3 Nuovi strumenti ---
 
-Lavori più recenti hanno esplorato K-means e clustering spettrale \citep{rintamaki2017}, ma questi metodi dipendono ancora da un $K$ pre-specificato e faticano con geometrie non convesse e a densità variabile.
-
-Questi approcci condividono due limiti strutturali.
-Primo, la struttura viene imposta dall'alto: il numero di stati, la famiglia distributiva e tutti i parametri sono fissati prima di vedere i dati.
-Secondo, e più sottilmente, ciascuna famiglia cattura implicitamente una dimensione diversa del mercato: HMM e GMM separano i \emph{livelli di prezzo}, i modelli mean-reverting descrivono la \emph{dinamica temporale}.
-La letteratura ha ampiamente documentato che entrambe le dimensioni presentano struttura: il volatility clustering, uno degli stylized fact più robusti dei mercati finanziari \citep{cont2001}, è presente anche nei prezzi elettrici, e gli spike tendono ad aggregarsi in cluster persistenti piuttosto che presentarsi isolati \citep{christensen2009}.
-Tuttavia, nessun approccio si chiede se queste due dimensioni siano governate dallo stesso processo latente o da processi indipendenti: la domanda viene semplicemente elusa, e un'unica etichetta di stato collassa livello e dinamica in una sola variabile.
-Come osservato da \citet{weron2014} in una rassegna completa, l'identificazione dei regimi resta ``uno dei problemi più impegnativi del settore''.
-
-% --- 1.3 La natura multidimensionale dei regimi ---
-
-Un limite chiave degli approcci esistenti è che descrivono lo stato di mercato con una singola etichetta.
-Tuttavia un regime di mercato ha almeno due dimensioni distinte.
-La prima è il \emph{livello di prezzo}: quanto è costosa l'elettricità in questo momento --- off-peak, normale o spike?
-La seconda è la \emph{dinamica dei prezzi}: come si comporta il prezzo nel tempo --- ritorna rapidamente al suo livello normale dopo uno shock, oppure lo shock persiste per giorni?
-Queste due dimensioni portano informazioni diverse.
-Un mercato a \$100/MWh che tornerà a \$50 entro poche ore pone un rischio diverso da un mercato a \$100/MWh che resterà elevato per due settimane, eppure un'unica etichetta di regime (``spike'') confonde i due casi.
-Che la dinamica intra-giornaliera dei prezzi elettrici sia eterogenea è stato documentato empiricamente \citep{karakatsani2008, knittel2005}: la velocità con cui il mercato assorbe uno shock varia nel tempo e tra condizioni operative diverse.
-Tuttavia, i modelli regime-switching esistenti \citep{huisman2003} assegnano un singolo stato latente che governa simultaneamente sia il livello di prezzo sia la dinamica della volatilità, assumendo implicitamente che le due dimensioni siano guidate dallo stesso processo.
-Se questa assunzione sia valida, se cioè livello e dinamica siano effettivamente accoppiati o varino indipendentemente, è una domanda empirica che non è stata testata.
-In sintesi, la letteratura ha accumulato evidenza che sia la volatilità sia la persistenza dei prezzi elettrici presentano una struttura propria, ma non ha mai verificato se questa struttura sia indipendente dal livello di prezzo.
-Questo lavoro colma esattamente questo gap.
-
-% --- 1.4 Nuovi strumenti ---
-
-Due sviluppi recenti creano l'opportunità di testare questa ipotesi, e, aspetto cruciale, di farlo in modo interamente non supervisionato e guidato dai dati, eliminando ogni possibilità che scelte soggettive predeterminino il risultato.
-Primo, i foundation model per serie temporali \citep{yeh2023}.
-Un foundation model è una rete neurale di grandi dimensioni addestrata una sola volta su un corpus molto vasto e diversificato, centinaia di migliaia di serie temporali da domini eterogenei (meteorologia, finanza, sanità, ingegneria), e poi riutilizzabile su qualsiasi nuova serie senza alcun addestramento aggiuntivo.
-Questo pre-addestramento su larga scala costituisce il valore centrale dei foundation model: l'enorme diversità di pattern temporali osservati durante l'addestramento (trend, stagionalità, persistenza, cambi di regime, code pesanti) viene condensata nei parametri della rete, creando un patrimonio di conoscenze trasferibile a qualsiasi nuovo dominio applicativo.
-Nel contesto dei rapidi sviluppi dell'intelligenza artificiale, i foundation model rappresentano uno strumento sempre più centrale per l'analisi delle serie temporali, poiché permettono di sfruttare la conoscenza accumulata su centinaia di migliaia di serie senza il costo di un addestramento dedicato.
-Il modello è così in grado di produrre rappresentazioni numeriche che riassumono la struttura temporale di una finestra di input senza alcuna conoscenza specifica del dominio di applicazione.
-A differenza dei modelli tradizionali che richiedono la progettazione manuale delle feature, e a differenza degli HMM e GMM che richiedono la specificazione del numero di stati, un foundation model applicato senza alcun addestramento sui dati in esame scopre autonomamente quali pattern temporali sono rilevanti.
+Due sviluppi recenti creano l'opportunità di testare questa ipotesi.
+Primo, i foundation model per serie temporali \citep{yeh2023}: reti neurali di grandi dimensioni addestrate su centinaia di migliaia di serie temporali eterogenee (meteorologia, finanza, sanità, ingegneria), riutilizzabili su qualsiasi nuova serie senza addestramento aggiuntivo.
+La diversità di pattern osservati durante il pre-addestramento (trend, stagionalità, persistenza, cambi di regime) viene condensata nei parametri della rete, creando un patrimonio di conoscenze trasferibile a qualsiasi dominio \citep{tsfm_survey2025}.
 Non è necessario decidere cosa cercare: è il modello a trovare ciò che i dati contengono.
-Tra i foundation model disponibili, adottiamo MOMENT \citep{moment2024} perché soddisfa tre requisiti simultaneamente: è progettato specificamente per serie temporali (non adattato da modelli linguistici), fornisce una modalità nativa di embedding pensata per l'apprendimento delle rappresentazioni (non solo per la previsione), ed è interamente open source, con pesi, codice e dati di addestramento pubblicamente disponibili, garantendo la piena riproducibilità dei risultati.
-Nessun altro foundation model per serie temporali (Chronos, TimesFM, Moirai) soddisfa contemporaneamente tutti e tre i requisiti.
-Secondo, l'analisi topologica dei dati \citep{carlsson2009, edelsbrunner2010} offre metodi di clustering che determinano il numero di regimi direttamente dalla geometria dei dati, senza che sia necessario specificare $K$ in anticipo.
-Combinati, i due strumenti realizzano una pipeline in cui nessun parametro strutturale è fissato a priori: né il numero di regimi, né la dimensionalità delle rappresentazioni, né le feature da estrarre.
-Ad oggi, i foundation model per serie temporali sono stati applicati ai mercati elettrici esclusivamente per la previsione dei prezzi \citep{tsfm_epf_benchmark2025, pricefm2025} e per il rilevamento di anomalie \citep{tsfm_anomaly_energy2024} --- si veda \citet{tsfm_survey2025} per una rassegna completa --- mentre l'intero approccio qui proposto, utilizzare le rappresentazioni apprese da un foundation model come input per un clustering non supervisionato che scopra la struttura dei regimi, non ha precedenti nella letteratura sui mercati energetici.
+Tra i foundation model disponibili, adottiamo MOMENT \citep{moment2024} perché soddisfa tre requisiti: è progettato per serie temporali (non adattato da modelli linguistici), fornisce una modalità nativa di embedding per l'apprendimento delle rappresentazioni (non solo per la previsione), ed è interamente open source.
+MOMENT è particolarmente adatto perché, tra i foundation model disponibili al momento dello studio (Chronos, TimesFM, Moirai), è l'unico a soddisfare contemporaneamente tutti e tre i requisiti.
+Secondo, l'analisi topologica dei dati \citep{carlsson2009, edelsbrunner2010} offre metodi di clustering che determinano il numero di regimi direttamente dalla geometria dei dati, senza specificare $K$ in anticipo.
+Ad oggi, i foundation model sono stati applicati ai mercati elettrici solo per la previsione dei prezzi \citep{tsfm_epf_benchmark2025, pricefm2025} e il rilevamento di anomalie \citep{tsfm_anomaly_energy2024}; l'approccio qui proposto, utilizzare le loro rappresentazioni come input per un clustering non supervisionato, non ha precedenti nella letteratura sui mercati energetici.
 
-% --- 1.4 Domanda di ricerca ---
+% --- 1.4 Strategia e contributo ---
 
-Insieme, questi strumenti permettono di testare se livello e dinamica sono governati dalla stessa struttura latente o da processi indipendenti.
-La strategia consiste nel costruire due rappresentazioni degli stessi dati di prezzo, una che codifica le informazioni sul livello di prezzo attraverso statistiche specifiche del dominio e una che codifica le dinamiche temporali attraverso un foundation model, e nel clusterizzare ciascuna indipendentemente con lo stesso algoritmo non parametrico.
-È importante sottolineare che le due rappresentazioni non sono costruite su dati diversi, ma derivano entrambe dalla stessa serie di residui attraverso una trasformazione deterministica e invertibile: se il mercato fosse organizzato lungo una sola dimensione, entrambe le viste la catturerebbero e le partizioni risulterebbero concordi, mentre se discordano il mercato possiede \emph{almeno} due dimensioni indipendenti di organizzazione dei regimi e una singola etichetta è insufficiente.
-L'esperimento non pretende di esaurire tutte le possibili dimensioni della struttura di mercato: dimostra che ne esistono almeno due, e fornisce un framework (il confronto cross-ARI tra partizioni indipendenti) per cercarne altre.
+La strategia consiste nel costruire due rappresentazioni degli stessi dati di prezzo, una basata su statistiche specifiche del dominio e una su un foundation model, e nel clusterizzare ciascuna indipendentemente con lo stesso algoritmo non parametrico.
+Le due rappresentazioni derivano dalla stessa serie di residui attraverso una trasformazione deterministica e invertibile: se il mercato fosse organizzato lungo una sola dimensione, entrambe le viste la catturerebbero e le partizioni risulterebbero concordi.
 
-% --- 1.5 Contributo ---
-
-Questo lavoro fornisce una risposta.
 Il contributo è triplice.
-Primo, scopriamo un nuovo asse della struttura di mercato --- la persistenza temporale, che è statisticamente indipendente dal livello di prezzo e invisibile a qualsiasi modello che descriva il mercato con un'unica etichetta di stato.
-Secondo, la scoperta emerge da una pipeline interamente non supervisionata e guidata dai dati (Figura~\ref{fig:pipeline}): nessuna etichetta è fornita a priori, nessun numero di regimi è ipotizzato in anticipo, nessun parametro strutturale è prefissato.
-È la struttura stessa dei dati a determinare quanti regimi esistono, quante dimensioni servono a descriverli e quali variabili li separano.
-Terzo, l'asse dinamico è scoperto da un foundation model per serie temporali (MOMENT) applicato senza alcun addestramento specifico sui dati elettrici, senza fine-tuning, senza esposizione a dati di mercato durante il pre-addestramento, e senza intervento umano nella selezione delle feature.
-Il modello riceve esclusivamente i residui destagionalizzati $r_t$, senza accesso al livello di prezzo: qualsiasi struttura catturi proviene puramente dalla dinamica temporale della serie.
-Questa tripla indipendenza, dal dominio, da ipotesi soggettive e dalla supervisione, rende il risultato particolarmente robusto: non viene deciso a priori cosa cercare, ma sono i dati stessi a rivelare che la persistenza è la dimensione organizzativa dominante non catturata dalle statistiche distribuzionali.
+Primo, scopriamo un asse della struttura di mercato, la persistenza temporale, che è statisticamente indipendente dal livello di prezzo.
+Secondo, il numero di regimi non è specificato a priori ma emerge dalla struttura dei dati attraverso una pipeline non supervisionata (Figura~\ref{fig:pipeline}).
+Terzo, l'asse dinamico è scoperto da MOMENT applicato senza alcun addestramento sui dati elettrici: il modello riceve esclusivamente i residui destagionalizzati $r_t$, senza accesso al livello di prezzo, e qualsiasi struttura catturi proviene dalla dinamica temporale della serie.
 
-La pipeline (Figura~\ref{fig:pipeline}) prima preprocessa la serie oraria dei prezzi~(a), poi costruisce due rappresentazioni delle stesse finestre scorrevoli --- feature costruite manualmente~(b) e un embedding da foundation model~(c).
-Ciascuna rappresentazione viene ridotta a poche coordinate tramite Diffusion Maps~(d) e partizionata in modi di densità da ToMATo~(e).
-Una diagnostica di separazione delle feature~(f) valuta tutte le 15 feature interpretabili rispetto a entrambi gli insiemi di modi per scoprire cosa separa ciascuna rappresentazione, e la variabile di merge risultante viene utilizzata per consolidare i modi tramite Tukey HSD~(g).
-Applicando questa pipeline a cinque anni di LMP orari di ISO New England, troviamo che le due partizioni risultanti sono statisticamente indipendenti: il mercato elettrico è organizzato lungo almeno due assi ortogonali di struttura dei regimi, uno economico e uno dinamico.
+La pipeline (Figura~\ref{fig:pipeline}) preprocessa la serie oraria dei prezzi~(a), costruisce le due rappresentazioni~(b,c), riduce ciascuna a poche coordinate tramite Diffusion Maps~(d), identifica i modi di densità con ToMATo~(e), determina la variabile di merge tramite una diagnostica di separazione~(f), e consolida i modi tramite Tukey HSD~(g).
 
 % ── Diagramma della pipeline ─────────────────────────────────────────────────
 \begin{figure}[H]
 \centering
-\resizebox{0.52\textwidth}{!}{%
+\resizebox{0.65\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\small,
   >=Latex,
@@ -211,7 +159,7 @@ Applicando questa pipeline a cinque anni di LMP orari di ISO New England, trovia
 \node[box, fill=gray!6, below=of tukey] (regimes) {\textbf{Regimi finali}};
 
 \node[box, fill=yellow!10, draw=red!50, dashed, thick, below=of regimes]
-  (axes) {\textcolor{red!65!black}{\textbf{Due assi indipendenti}}};
+  (axes) {\textcolor{red!65!black}{\textbf{Due assi quasi ortogonali}}};
 
 % Arrows — main flow
 \draw[arr] (lmp) -- (pre);
@@ -510,7 +458,7 @@ Tutte le analisi successive sono indicizzate da $i = 1, \ldots, 7217$.
 \section{Pipeline}
 \label{sec:pipeline}
 
-La pipeline (Figura~\ref{fig:pipeline}) è completamente non supervisionata: il numero di regimi e tutti i parametri emergono dai dati.
+La pipeline (Figura~\ref{fig:pipeline}) è non supervisionata: il numero di regimi emerge dai dati senza essere specificato a priori.
 Consiste in cinque fasi: (i)~rappresentazione, (ii)~riduzione dimensionale, (iii)~clustering topologico, (iv)~diagnostica di separazione, (v)~merge statistico.
 Ogni fase è applicata indipendentemente ai due rami (FE e MOMENT), ma con gli stessi criteri algoritmici: le eventuali differenze nei risultati riflettono i dati, non scelte soggettive.
 
@@ -628,13 +576,13 @@ Gli autovettori dominanti di $T$ forniscono le coordinate di diffusione:
 \end{equation}
 La dimensionalità $d$ è determinata dallo stesso criterio per entrambi i rami: il \textbf{gap spettrale} degli autovalori.
 Per FE, il gap è netto tra $\lambda_2$ e $\lambda_3$ (rapporto 1,89), dando $d = 2$.
-Per MOMENT, un plateau ($\lambda_3$--$\lambda_5$, rapporti $\approx 1{,}04$--$1{,}08$) indica segnale residuo; il gap successivo è a $\lambda_5/\lambda_6 = 1{,}41$, dando $d = 5$.
+Per MOMENT, un plateau ($\lambda_2$--$\lambda_4$, rapporti $\approx 1{,}04$--$1{,}08$) indica segnale residuo; il gap più netto è a $\lambda_4/\lambda_5 = 1{,}41$, seguito da un rapporto $\lambda_5/\lambda_6 = 1{,}19$ ancora moderato. La pipeline adotta $d = 5$ per includere il segnale residuo di $\lambda_5$.
 La Figura~\ref{fig:spectral_gap} mostra il decadimento degli autovalori per entrambe le rappresentazioni: le barre indicano l'importanza di ciascuna coordinata di diffusione e la linea rossa segna il punto dove il segnale cede al rumore.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{spectral_gap.png}
-\caption{Gap spettrale delle Diffusion Maps. Ogni barra rappresenta un autovalore (coordinata di diffusione), ordinato per importanza decrescente. A sinistra (FE): il salto netto dopo $\lambda_2$ indica che due coordinate bastano a catturare la struttura. A destra (MOMENT): le coordinate 3--5 formano un plateau di valori simili (tutte contribuiscono al segnale), seguito da un salto dopo $\lambda_5$ che segna il confine con il rumore. La linea rossa tratteggiata indica la dimensionalità scelta ($d = 2$ per FE, $d = 5$ per MOMENT).}
+\caption{Gap spettrale delle Diffusion Maps. Ogni barra rappresenta un autovalore (coordinata di diffusione), ordinato per importanza decrescente. A sinistra (FE): il salto netto dopo $\lambda_2$ ($\lambda_2/\lambda_3 = 1{,}89$) indica che due coordinate bastano a catturare la struttura. A destra (MOMENT): le coordinate 2--4 formano un plateau di valori simili (rapporti $\approx 1{,}04$--$1{,}08$), il gap principale cade tra $\lambda_4$ e $\lambda_5$ ($\lambda_4/\lambda_5 = 1{,}41$), e $\lambda_5$ conserva ancora segnale residuo ($\lambda_5/\lambda_6 = 1{,}19$). La pipeline adotta $d = 5$ per includere questo segnale.}
 \label{fig:spectral_gap}
 \end{figure}
 
@@ -750,7 +698,7 @@ La Figura~\ref{fig:merge_process} illustra il merge: i 48 modi iniziali collassa
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.85\textwidth]{merge_process.png}
-\caption{Merge Tukey HSD sull'asse economico. In alto: 48 modi iniziali ToMATo, rappresentati per LMP medio. Molti modi hanno prezzi quasi identici. In basso: dopo il merge iterativo, sopravvivono 9 regimi, ciascuno significativamente diverso da tutti gli altri.}
+\caption{Distribuzione dell'LMP medio nei 9 regimi economici dopo merge Tukey HSD (da 48 modi iniziali). Ogni boxplot mostra la distribuzione dell'LMP medio delle finestre assegnate al regime. I regimi sono ordinati per LMP crescente e annotati con dimensione campionaria e prezzo medio.}
 \label{fig:merge_process}
 \end{figure}
 
@@ -851,7 +799,8 @@ Questo conferma che l'asse dinamico cattura una dimensione genuinamente indipend
 Terzo, la volatilità ($\sigma_r$) cresce con la persistenza: i regimi a rapida reversione hanno $\sigma_r \approx 0{,}12$, i più persistenti $\sigma_r \approx 0{,}48$.
 Questo accoppiamento persistenza--volatilità richiama uno degli stylized fact più robusti dei mercati finanziari, il volatility clustering \citep{cont2001}: periodi di alta volatilità tendono a raggrupparsi e a persistere nel tempo.
 Nei mercati finanziari tradizionali, questo fenomeno è tipicamente modellato come effetto autoregressivo della varianza condizionata (GARCH).
-Qui, invece, emerge come proprietà strutturale del regime: non è la volatilità di ieri a predire quella di oggi, ma è lo stato fisico del sistema (congestioni, inerzia del parco di generazione, vincoli di rampa) a determinare simultaneamente sia la persistenza sia l'ampiezza degli shock.
+Qui, invece, emerge come proprietà strutturale del regime: non è la volatilità di ieri a predire quella di oggi, ma lo stato operativo del sistema a determinare simultaneamente sia la persistenza sia l'ampiezza degli shock.
+Un'interpretazione economica coerente è che fattori come congestioni di rete, inerzia del parco di generazione e vincoli di rampa producano condizioni in cui gli shock sono al tempo stesso ampi e lenti a rientrare, sebbene la verifica causale di questa ipotesi richiederebbe l'integrazione di variabili esogene (carico, prezzi del combustibile, meteo) non utilizzate in questo lavoro.
 La letteratura sulla persistenza degli spike nei mercati elettrici \citep{christensen2009} ha documentato come gli eventi estremi tendano ad aggregarsi in cluster piuttosto che presentarsi isolati, un fenomeno coerente con i regimi ad alta persistenza ($D_3$, $D_8$) che osserviamo.
 
 
@@ -882,15 +831,12 @@ Chiamiamo questa proprietà \emph{quasi-ortogonalità}.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.58\textwidth]{two_axis_grid.png}
-\caption{Griglia dei regimi $E \times D$. Ogni cella rappresenta una combinazione prezzo--persistenza; l'intensità del colore indica il numero di finestre. Se i due assi fossero ridondanti (ARI $\approx 1$), le finestre si concentrerebbero sulla diagonale. La distribuzione diffusa (70 celle su 81 popolate, ARI $= 0{,}012$) conferma che i due assi sono quasi ortogonali.}
+\includegraphics[width=0.65\textwidth]{ari_heatmap.png}
+\caption{Heatmap della griglia $E \times D$. Ogni cella rappresenta una combinazione prezzo--persistenza; l'intensità del colore indica il numero di finestre. Se i due assi fossero ridondanti (ARI $\approx 1$), le finestre si concentrerebbero sulla diagonale. La distribuzione diffusa (70 celle su 81 popolate, ARI $= 0{,}012$) conferma che i due assi sono quasi ortogonali.}
 \label{fig:ari_grid}
 \end{figure}
 
-L'ARI è la prima di tre linee di evidenza indipendenti a supporto di questa quasi-ortogonalità.
-
-% --- Evidenza 2: separazione visiva ---
-La seconda è visiva.
+Il valore dell'ARI è la prima evidenza a supporto della quasi-ortogonalità. La seconda è visiva.
 La Figura~\ref{fig:axes_evidence} mostra ciascuna partizione contro ciascuna variabile di mercato in un layout $2\times 2$.
 Il pannello~(a) mostra i regimi FE contro l'LMP: una scala monotona netta dove ogni regime occupa una banda di prezzo distinta --- FE separa il livello di prezzo.
 Il pannello~(b) mostra i regimi MOMENT contro l'LMP: le distribuzioni si sovrappongono pesantemente, senza gradiente di prezzo --- MOMENT non separa il livello di prezzo.
@@ -906,9 +852,7 @@ Ogni rappresentazione cattura una dimensione che l'altra in gran parte ignora.
 \label{fig:axes_evidence}
 \end{figure}
 
-% --- Evidenza 3: quattro quadranti ---
-
-L'indipendenza statistica dei due assi solleva una domanda immediata: questa struttura bidimensionale ha conseguenze pratiche, o è solo un'osservazione statistica?
+La quasi-ortogonalità dei due assi solleva una domanda immediata: questa struttura bidimensionale ha conseguenze pratiche, o è solo un'osservazione statistica?
 Le sezioni seguenti dimostrano che l'omissione dell'asse dinamico --- la condizione operativa di tutti i modelli regime-switching che utilizzano un'unica etichetta di stato --- produce distorsioni sistematiche e quantificabili nell'allocazione del rischio.
 
 
@@ -1004,7 +948,7 @@ La corrispondenza tra traiettorie empiriche e simulate conferma che il modello m
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{mc_trajectories.png}
-\caption{Traiettorie empiriche (sopra, blu) e Monte Carlo simulate (sotto, rosso) per tre regimi dinamici all'interno di $E_3$ (Baseload, \$41/MWh). A sinistra: rapida reversione ($\alpha = 0{,}159$, half-life 4\,h). Al centro: moderata ($\alpha = 0{,}060$, half-life 11\,h). A destra: persistente ($\alpha = 0{,}031$, half-life 22\,h). L'area ombreggiata indica l'inviluppo teorico $\pm 2\sigma_\infty$. Tutte le finestre provengono dallo stesso regime di prezzo ma mostrano dinamiche qualitativamente diverse.}
+\caption{Traiettorie empiriche (sopra, blu) e Monte Carlo simulate (sotto, rosso) per tre regimi dinamici all'interno di $E_3$ (Baseload, \$41/MWh). A sinistra: rapida reversione ($\alpha = 0{,}159$, half-life 4\,h). Al centro: moderata ($\alpha = 0{,}060$, half-life 11\,h). A destra: persistente ($\alpha = 0{,}031$, half-life 22\,h). Tutte le finestre provengono dallo stesso regime di prezzo ma mostrano dinamiche qualitativamente diverse.}
 \label{fig:mc_trajectories}
 \end{figure}
 
@@ -1070,11 +1014,11 @@ La distorsione è asimmetrica per costruzione: un unico $\alpha$ mediato produce
 Questa inefficienza allocativa non è risolvibile affinando la stima di $\alpha(E)$: il problema non è nella precisione della stima, ma nel fatto che il parametro è vincolato a un asse che non lo governa.
 
 \paragraph{L'asse D e la microstruttura del mercato.}
-Dal punto di vista della microstruttura, l'asse $D$ mappa l'elasticità temporale dell'offerta e i vincoli fisici della rete --- congestioni, rampe di accensione dei generatori termici, inerzia del parco di generazione --- che sono per loro natura ortogonali al livello nominale del prezzo.
+Dal punto di vista della microstruttura, un'interpretazione plausibile è che l'asse $D$ rifletta l'elasticità temporale dell'offerta e i vincoli operativi della rete, come congestioni, rampe di accensione dei generatori termici e inerzia del parco di generazione, fattori che sono per loro natura indipendenti dal livello nominale del prezzo.
 Un mercato può trovarsi simultaneamente in un regime di prezzo elevato e in condizione di rapida mean-reversion (uno spike transitorio da picco di domanda che rientra in poche ore) oppure in un regime di prezzo moderato ma con persistenza elevata (un prolungato stress da offerta durante un'ondata di calore estiva).
 
 Il modello convenzionale a singola etichetta di regime non è in grado di rappresentare queste combinazioni.
-L'asse dinamico, scoperto dalla pipeline senza alcuna assunzione parametrica, fornisce la dimensione mancante e consente una caratterizzazione del rischio che riflette i vincoli fisici del mercato, non solo il suo livello nominale di prezzo.
+L'asse dinamico, scoperto dalla pipeline senza alcuna assunzione parametrica, fornisce la dimensione mancante e consente una caratterizzazione del rischio che va oltre il livello nominale di prezzo.
 
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -1148,14 +1092,19 @@ Le metriche temporali dell'asse dinamico non sono riportate perché i regimi $D$
 
 I due assi hanno conseguenze pratiche dirette.
 L'asse economico risponde a \emph{quanto} costa l'elettricità; l'asse dinamico risponde a \emph{come} si comporterà il prezzo nelle ore e nei giorni successivi.
-Tutte e quattro le combinazioni di prezzo alto/basso e mean-reversion rapida/lenta sono popolate (Figura~\ref{fig:ari_grid}), ciascuna con un significato operativo distinto.
+Tutte e quattro le combinazioni di prezzo alto/basso e mean-reversion rapida/lenta sono popolate (Figura~\ref{fig:quadrants}), ciascuna con un significato operativo distinto.
 Gli stati ad alto prezzo e rapida reversione (18\% delle finestre) sono spike transitori che si risolvono rapidamente; una copertura aggressiva pagherebbe troppo.
 Gli stati ad alto prezzo e shock-persistenti (32\%) sono eventi di stress prolungati, tipicamente ondate di freddo invernale, dove la copertura è giustificata e le riserve di emergenza possono esaurirsi.
 Gli stati a basso prezzo e rapida reversione (32\%) sono mercati calmi con clima mite dove le operazioni normali sono sufficienti.
 Gli stati a basso prezzo e sticky (18\%) sono periodi prolungati di prezzi moderati o bassi dove il rischio di curtailment delle rinnovabili è elevato e gli operatori di stoccaggio dovrebbero caricare.
 Un'etichetta convenzionale a singolo asse ``spike'' raggruppa eventi ad alto prezzo transitori e persistenti, anche se i loro profili di rischio sono qualitativamente diversi.
 
-La griglia $E \times D$ (Figura~\ref{fig:ari_grid}) conferma che tutti e quattro i quadranti sono popolati.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{two_axis_grid.png}
+\caption{Spazio dei regimi a due assi. Ogni punto è una finestra, posizionata per LMP medio (asse orizzontale) e ACF al lag 6\,h (asse verticale). I quattro quadranti (prezzo alto/basso $\times$ persistenza alta/bassa) sono tutti popolati, confermando che le due dimensioni variano indipendentemente.}
+\label{fig:quadrants}
+\end{figure}
 
 % --- Perché MOMENT cattura le dinamiche ---
 
@@ -1199,15 +1148,15 @@ La finestra di 512 ore impone una scala temporale minima, e la pipeline è retro
 \section{Conclusioni}
 \label{sec:conclusion}
 
-Questo lavoro introduce una pipeline non parametrica per il rilevamento non supervisionato dei regimi nei mercati elettrici spot, in cui il numero di regimi, la dimensionalità della varietà e tutti i parametri di regolazione emergono dai dati attraverso l'analisi della persistenza topologica.
-Applicando questa pipeline a cinque anni di prezzi orari di ISO New England con due rappresentazioni alternative, arriviamo a una scoperta strutturale: il mercato elettrico è organizzato lungo almeno due assi indipendenti di struttura dei regimi.
+Questo lavoro introduce una pipeline non parametrica per il rilevamento non supervisionato dei regimi nei mercati elettrici spot, in cui il numero di regimi e la dimensionalità effettiva delle rappresentazioni emergono dai dati attraverso l'analisi della persistenza topologica.
+Applicando questa pipeline a cinque anni di prezzi orari di ISO New England con due rappresentazioni alternative, arriviamo a una scoperta strutturale: il mercato elettrico è organizzato lungo almeno due assi quasi ortogonali di struttura dei regimi.
 
-Il primo asse è economico: 15 feature --- 12 distribuzionali sugli incrementi $\Delta r_t$ e 3 statistiche sull'LMP grezzo --- producono $K_E = 9$ regimi che vanno dall'off-peak allo spike estremo invernale.
+Il primo asse è economico: 15 feature, di cui 11 distribuzionali e una di volatilità infragiornaliera sugli incrementi $\Delta r_t$, più 3 statistiche sull'LMP grezzo, producono $K_E = 9$ regimi che vanno dall'off-peak allo spike estremo invernale.
 Questi regimi persistono per giorni e transitano gradualmente attraverso livelli di prezzo adiacenti.
 
 Il secondo asse è dinamico: MOMENT, operando sui livelli $r_t$, produce $K_D = 9$ regimi separati per persistenza temporale --- quanto rapidamente avviene la mean-reversion dopo uno shock.
 $K_E$ e $K_D$ emergono dalla stessa pipeline senza alcun intervento esterno.
-I due assi sono statisticamente indipendenti.
+I due assi sono quasi ortogonali.
 
 Nessuna singola rappresentazione è sufficiente: i regimi economici servono la copertura, i regimi dinamici servono la previsione, e i due devono essere impiegati in parallelo.
 

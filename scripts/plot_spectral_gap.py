@@ -73,9 +73,9 @@ ax.annotate(f"$\\lambda_2/\\lambda_3 = {r_fe:.2f}$",
 # MOMENT panel
 ax = axes[1]
 ax.bar(idx, evals_mom[1:n_show+1], color="darkorange", alpha=0.8, edgecolor="saddlebrown", linewidth=0.5)
-ax.axvline(x=5.5, color="red", linestyle="--", linewidth=1.5, label="gap: $d=5$")
-# Highlight plateau
-for i in [3, 4, 5]:
+ax.axvline(x=5.5, color="red", linestyle="--", linewidth=1.5, label="$d=5$")
+# Highlight plateau (lambda2-lambda4)
+for i in [2, 3, 4]:
     ax.bar(i, evals_mom[i], color="gold", alpha=0.9, edgecolor="saddlebrown", linewidth=0.5)
 ax.set_xlabel("Eigenvalue index $k$", fontsize=11)
 ax.set_ylabel("$\\lambda_k$", fontsize=12)
@@ -84,13 +84,18 @@ ax.set_xticks(idx)
 ax.legend(fontsize=10)
 
 # Annotate plateau and gap
-ax.annotate("plateau\n$\\lambda_3$–$\\lambda_5$",
-            xy=(4, evals_mom[4]), xytext=(7, evals_mom[3]*1.02),
+ax.annotate("plateau\n$\\lambda_2$--$\\lambda_4$",
+            xy=(3, evals_mom[3]), xytext=(7, evals_mom[2]*1.02),
             fontsize=9, arrowprops=dict(arrowstyle="->", color="goldenrod"),
             color="goldenrod", ha="center")
-r_mom = evals_mom[5] / evals_mom[6]
-ax.annotate(f"$\\lambda_5/\\lambda_6 = {r_mom:.2f}$",
-            xy=(5.5, evals_mom[5]), xytext=(8, evals_mom[5]*0.95),
+r_mom_main = evals_mom[4] / evals_mom[5]
+ax.annotate(f"$\\lambda_4/\\lambda_5 = {r_mom_main:.2f}$",
+            xy=(4.5, evals_mom[4]), xytext=(7.5, evals_mom[4]*1.1),
+            fontsize=9, arrowprops=dict(arrowstyle="->", color="darkred"),
+            color="darkred")
+r_mom_5 = evals_mom[5] / evals_mom[6]
+ax.annotate(f"$\\lambda_5/\\lambda_6 = {r_mom_5:.2f}$",
+            xy=(5.5, evals_mom[5]), xytext=(8.5, evals_mom[5]*0.85),
             fontsize=9, arrowprops=dict(arrowstyle="->", color="red"),
             color="red")
 
