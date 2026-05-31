@@ -74,9 +74,10 @@ Questo lavoro scopre questa struttura bidimensionale attraverso una pipeline non
 
 % --- 1.1 Il contesto economico ---
 
-L'elettricità non può essere immagazzinata a costi ragionevoli: l'offerta deve eguagliare la domanda in ogni istante, e il prezzo riflette il costo dell'ultimo generatore necessario per mantenere il sistema in equilibrio.
-I generatori vengono ordinati per costo di produzione in una graduatoria nota come merit order: quando la domanda è bassa i generatori economici sono sufficienti e i prezzi sono bassi, quando la domanda sale o l'offerta diminuisce il sistema ricorre a unità progressivamente più costose e il prezzo sale di conseguenza \citep{weron2014}.
-Negli Stati Uniti, i mercati elettrici all'ingrosso sono gestiti da Independent System Operators (ISO) che compensano domanda e offerta attraverso aste centralizzate producendo un Locational Marginal Price (LMP) per ogni nodo della rete.
+A differenza di altre materie prime, l'elettricità non può essere immagazzinata a costi ragionevoli, e l'offerta deve quindi eguagliare la domanda istante per istante.
+Il prezzo si forma attraverso un meccanismo noto come merit order \citep{weron2014}: i generatori vengono ordinati per costo di produzione crescente, e il prezzo di mercato è determinato dall'ultimo generatore necessario a soddisfare la domanda.
+Quando la domanda è bassa bastano i generatori più economici e i prezzi restano contenuti; quando la domanda cresce o l'offerta si riduce, entrano in funzione unità via via più costose e il prezzo sale di conseguenza.
+Negli Stati Uniti, questo meccanismo opera all'interno di mercati all'ingrosso gestiti da Independent System Operators (ISO), che attraverso aste centralizzate determinano un Locational Marginal Price (LMP) per ogni nodo della rete di trasmissione.
 Questo lavoro si concentra su ISO New England (ISONE), ma la metodologia è applicabile a qualsiasi mercato nodale che produca LMP orari.
 
 La serie LMP presenta proprietà statistiche che la distinguono dalla maggior parte degli asset finanziari: code pesanti, mean-reversion a scale temporali multiple, tre cicli stagionali sovrapposti (giornaliero, settimanale, annuale) e valori occasionalmente negativi \citep{ziel2018, weron2006}.
@@ -111,11 +112,11 @@ Ad oggi, i foundation model sono stati applicati ai mercati elettrici solo per l
 
 % --- 1.4 Strategia e contributo ---
 
-La strategia consiste nel costruire due rappresentazioni degli stessi dati di prezzo, una basata su statistiche specifiche del dominio e una su un foundation model, e nel clusterizzare ciascuna indipendentemente con lo stesso algoritmo non parametrico.
+Per testare questa ipotesi, costruiamo due rappresentazioni degli stessi dati di prezzo, una basata su statistiche specifiche del dominio e una su un foundation model, e clusterizziamo ciascuna indipendentemente con lo stesso algoritmo non parametrico.
 Le due rappresentazioni derivano dalla stessa serie di residui attraverso una trasformazione deterministica e invertibile: se il mercato fosse organizzato lungo una sola dimensione, entrambe le viste la catturerebbero e le partizioni risulterebbero concordi.
 
 Il contributo è triplice.
-Primo, scopriamo un asse della struttura di mercato, la persistenza temporale, che è statisticamente indipendente dal livello di prezzo.
+Primo, scopriamo un asse della struttura di mercato, la persistenza temporale, che è quasi ortogonale al livello di prezzo.
 Secondo, il numero di regimi non è specificato a priori ma emerge dalla struttura dei dati attraverso una pipeline non supervisionata (Figura~\ref{fig:pipeline}).
 Terzo, l'asse dinamico è scoperto da MOMENT applicato senza alcun addestramento sui dati elettrici: il modello riceve esclusivamente i residui destagionalizzati $r_t$, senza accesso al livello di prezzo, e qualsiasi struttura catturi proviene dalla dinamica temporale della serie.
 
@@ -207,7 +208,7 @@ Il codice completo della pipeline e gli script di elaborazione dati sono pubblic
 Il resto del lavoro è organizzato come segue.
 La Sezione~\ref{sec:data} descrive i dati e il preprocessing.
 La Sezione~\ref{sec:pipeline} presenta le due rappresentazioni e il clustering non parametrico.
-La Sezione~\ref{sec:results} dimostra che i due assi sono indipendenti e quantifica le conseguenze economiche della struttura bidimensionale.
+La Sezione~\ref{sec:results} dimostra che i due assi sono quasi ortogonali e quantifica le conseguenze economiche della struttura bidimensionale.
 La Sezione~\ref{sec:discussion} discute le implicazioni operative e le limitazioni.
 La Sezione~\ref{sec:conclusion} conclude.
 
@@ -219,7 +220,7 @@ La Sezione~\ref{sec:conclusion} conclude.
 \label{sec:preprocessing}
 
 Gli LMP orari day-ahead per il Massachusetts Hub di ISO New England vengono scaricati dalla U.S.\ Energy Information Administration (EIA).\footnote{EIA Open Data API v2: \url{https://api.eia.gov/v2/electricity/rto/wholesale-data}. Parametri di query: \texttt{respondent=ISNE}, \texttt{type=D} (day-ahead). È necessaria una chiave API gratuita, ottenibile su \url{https://www.eia.gov/opendata/register.php}.}
-Il Locational Marginal Price (LMP) è il prezzo all'ingrosso dell'elettricità in un nodo specifico della rete di trasmissione, determinato ogni ora attraverso un'asta competitiva in cui i generatori presentano offerte di vendita e l'operatore di sistema compensa il mercato.
+Il Locational Marginal Price (LMP) è il prezzo all'ingrosso dell'elettricità in un punto specifico della rete di trasmissione: ogni ora, i generatori dichiarano a quale prezzo sono disposti a vendere, l'operatore di sistema seleziona le offerte necessarie a coprire la domanda in ordine di costo crescente, e l'LMP risultante riflette il costo marginale dell'ultimo generatore attivato.
 Il Massachusetts Hub è un nodo di prezzo di riferimento ampiamente utilizzato come benchmark per la regione del New England.
 
 Il campione contiene 43\,814 osservazioni orarie che coprono il periodo da gennaio 2021 a dicembre 2025 (Tabella~\ref{tab:lmp_stats}).
@@ -227,31 +228,32 @@ Questa finestra quinquennale cattura diversi episodi di mercato distinti: la rip
 
 \begin{table}[H]
 \centering
-\caption{Statistiche descrittive dell'LMP del Massachusetts Hub ISONE (\$/MWh), 2021--2025.}
+\caption{Statistiche descrittive dell'LMP del Massachusetts Hub ISONE, 2021--2025.}
 \label{tab:lmp_stats}
 \small
-\begin{tabular}{lrlr}
+\begin{tabular}{lr}
 \toprule
-\multicolumn{2}{c}{\textit{Campione}} & \multicolumn{2}{c}{\textit{Distribuzione}} \\
-\cmidrule(lr){1-2} \cmidrule(lr){3-4}
-Osservazioni    & 43\,814     & Media        & 55,51  \\
-Valori mancanti & 0           & Mediana      & 41,05  \\
-Periodo         & 2021--2025  & Dev.\ std    & 42,37  \\
-Frequenza       & oraria      & Asimmetria   & 2,34   \\
-                &             & Curtosi      & 9,94   \\
-\cmidrule(lr){1-2} \cmidrule(lr){3-4}
-\multicolumn{2}{c}{\textit{Range e percentili}} & \multicolumn{2}{c}{\textit{Valori estremi}} \\
-\cmidrule(lr){1-2} \cmidrule(lr){3-4}
-Minimo          & 9,15        & Oss.\ $> 400$ & 4     \\
-$Q_5$           & 20,22       & Oss.\ $< 10$  & 4     \\
-$Q_{25}$        & 28,82       & Oss.\ $< 0$   & 0     \\
-$Q_{75}$        & 64,96       & Oss.\ $= 0$   & 0     \\
-$Q_{95}$        & 151,90      &               &       \\
-Massimo         & 474,90      &               &       \\
+Ore misurate              & 43\,814       \\
+Valori mancanti           & 0             \\
+Periodo                   & 2021--2025    \\
+Frequenza                 & oraria        \\
+\midrule
+Media (\$/MWh)            & 55,51         \\
+Mediana                   & 41,05         \\
+Dev.\ std                 & 42,37         \\
+Asimmetria                & 2,34          \\
+Curtosi                   & 9,94          \\
+\midrule
+Minimo                    & 9,15          \\
+$Q_5$                     & 20,22         \\
+$Q_{25}$                  & 28,82         \\
+$Q_{75}$                  & 64,96         \\
+$Q_{95}$                  & 151,90        \\
+Massimo                   & 474,90        \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-\footnotesize\textit{Nota:} Tutti i valori in \$/MWh tranne dove indicato. Curtosi di Pearson (gaussiana~$= 3$).
+\footnotesize\textit{Nota:} Valori in \$/MWh salvo diversa indicazione. Curtosi di Pearson (gaussiana~$= 3$).
 \end{table}
 
 I prezzi dell'elettricità coprono un ampio intervallo: nel nostro campione vanno da un minimo di \$9/MWh a un massimo di quasi \$475/MWh, con una forte asimmetria positiva (mediana \$41 contro media \$56) e code pesanti (curtosi 9,94, oltre tre volte il valore gaussiano).
@@ -336,24 +338,22 @@ Residuo MSTL     & 0,977 & 0,770 & 0,238 & $-$0,403 \\
 
 MSTL viene applicato globalmente all'intera serie di 43\,814 ore prima di qualsiasi finestratura, producendo un'unica sequenza di residui orari $r_1, r_2, \ldots, r_{43814}$.
 
-\subsection{Due viste dello stesso residuo}
+\subsection{Livelli e incrementi del residuo}
 \label{sec:two_views}
 
 Il residuo $r_t$ è un processo stocastico con forte persistenza (ACF lag~1 $= 0{,}977$).
-Nella teoria dei processi stocastici, un processo può essere descritto attraverso due rappresentazioni complementari:
-\begin{itemize}[nosep]
-\item I suoi \textbf{livelli} $r_t$: descrivono la struttura di dipendenza temporale --- come gli shock si propagano, quanto il processo è persistente, se e quanto velocemente avviene la mean-reversion.
-\item I suoi \textbf{incrementi} $\Delta r_t = r_t - r_{t-1}$: descrivono la distribuzione delle innovazioni --- quanto sono ampi gli shock, se sono simmetrici, se hanno code pesanti. La serie $\Delta r_t$ è stazionaria.
-\end{itemize}
-
-Le due rappresentazioni sono deterministicamente derivate dalla stessa serie e coprono le stesse finestre temporali.
-Non sono ``dati diversi'' --- sono due viste dello stesso fenomeno, come descrivere il moto di un corpo tramite la posizione (dove si trova nel tempo) o la velocità (quanto cambia posizione ad ogni istante).
+Nella teoria dei processi stocastici, un processo può essere descritto attraverso due rappresentazioni complementari.
+I suoi livelli $r_t$ descrivono la struttura di dipendenza temporale, ovvero come gli shock si propagano, quanto il processo è persistente e quanto velocemente avviene la mean-reversion.
+I suoi incrementi $\Delta r_t = r_t - r_{t-1}$ descrivono la distribuzione degli shock, ovvero quanto sono ampi, se sono simmetrici e se hanno code pesanti; la serie $\Delta r_t$ è stazionaria.
+La relazione tra le due viste diventerà centrale nella Sezione~\ref{sec:model_spec}, dove modelliamo il residuo come un processo mean-reverting $r_t = (1-\alpha)\,r_{t-1} + s_t$: i livelli $r_t$ codificano la velocità di ritorno $\alpha$, gli incrementi $\Delta r_t$ catturano l'ampiezza degli shock $s_t$.
+Le due rappresentazioni sono deterministicamente derivate dalla stessa serie e coprono le stesse finestre temporali: non sono dati diversi ma due viste dello stesso fenomeno, come descrivere il moto di un corpo tramite la posizione o la velocità.
 
 Questa distinzione è importante perché i due strumenti di rappresentazione che utilizziamo (Sezione~\ref{sec:pipeline}) hanno requisiti computazionali diversi.
-Le \textbf{statistiche distribuzionali} (media, varianza, curtosi, percentili) sono invarianti all'ordine temporale --- rimescolando i valori nella finestra, si ottengono gli stessi numeri.
-Per essere stimatori consistenti della distribuzione marginale delle innovazioni, richiedono un input stazionario: ricevono $\Delta r_t$.
-L'\textbf{encoder temporale} (MOMENT) è un modello di sequenza che processa i valori nel loro ordine: la persistenza del processo è il segnale che deve codificare, non un disturbo da eliminare.
-Se l'input fosse rumore bianco ($\Delta r_t$), tutte le finestre produrrebbero embedding indistinguibili: MOMENT riceve $r_t$.
+Le statistiche distribuzionali (media, varianza, curtosi, percentili) sono invarianti all'ordine temporale: rimescolando i valori nella finestra, si ottengono gli stessi numeri.
+Per essere stimatori consistenti della distribuzione marginale degli shock, richiedono un input stazionario e ricevono quindi $\Delta r_t$.
+L'encoder temporale (MOMENT) opera in modo opposto: è un modello di sequenza che ha bisogno di vedere come i valori si susseguono nel tempo per distinguere una finestra dall'altra.
+Se ricevesse gli incrementi stazionari $\Delta r_t$, che per costruzione non hanno memoria, tutte le finestre gli apparirebbero statisticamente uguali e gli embedding sarebbero indistinguibili.
+Per questo MOMENT riceve i livelli $r_t$, dove la persistenza è ancora presente ed è proprio ciò che gli permette di discriminare finestre con dinamiche diverse.
 
 Un regime di mercato non è un evento istantaneo: è uno stato sostenuto che persiste per giorni o settimane.
 Un singolo residuo orario $r_t$ ci dice la deviazione di prezzo in un istante, ma non può dirci se il mercato è volatile o calmo, se gli shock persistono o rientrano rapidamente.
@@ -366,27 +366,9 @@ Con $S = 6$, ogni nuova finestra differisce dalla precedente per sole 6 ore su 5
 Poiché il passo è molto più breve della finestra, le finestre consecutive si sovrappongono pesantemente, condividendo $W - S = 506$ delle loro 512 ore: solo le 6 ore più vecchie vengono eliminate e 6 nuove ore vengono aggiunte.
 Con questi parametri, l'intera serie produce $N = 7\,217$ finestre.
 
-In tutto il lavoro, il pedice $t$ indicizza le singole ore e il pedice $i$ indicizza le finestre: $r_t$ è un singolo residuo orario, mentre $r_i$ denota l'intera finestra di 512 ore che termina all'ora $t_i$.
-Ogni finestra è identificata dall'ora in cui termina.
-La prima finestra completa termina all'ora 512, il primo istante in cui sono disponibili 512 residui consecutivi; la seconda termina all'ora 518; la terza all'ora 524; e così via, con la finestra $N = 7217$ che copre le ultime 512 ore della serie.
-In generale, l'ora finale della finestra $i$ è la fine della prima finestra più $(i-1)$ passi:
-\begin{equation}
-t_i = 512 + (i-1) \times 6
-\qquad
-i=1,\ldots,N.
-\label{eq:window_count}
-\end{equation}
-Ogni finestra $r_i$ raccoglie i 512 valori di residuo che terminano all'ora $t_i$:
-\begin{equation}
-r_i =
-\bigl(r_{t_i - 511},\;\, r_{t_i - 510},\;\, \ldots,\;\, r_{t_i}\bigr).
-\label{eq:window_vectors}
-\end{equation}
-La Figura~\ref{fig:windows} illustra lo schema.
-Per le feature FE che richiedono prezzi grezzi (Sezione~\ref{sec:repr_fe}), conserviamo anche la corrispondente finestra di prezzi grezzi $p_i = (p_{t_i-511}, \ldots, p_{t_i})$.
-
-Da questo punto in avanti, ogni finestra è un'osservazione: riceve un vettore di rappresentazione, un'etichetta di cluster e un'assegnazione di regime.
-Tutte le analisi successive sono indicizzate da $i = 1, \ldots, 7217$.
+La Figura~\ref{fig:windows} illustra lo schema di finestratura.
+Nel resto del lavoro, il pedice $t$ indicizza le singole ore e il pedice $i$ le finestre ($i = 1, \ldots, 7\,217$): ogni finestra $r_i$ è un blocco di 512 residui orari consecutivi e costituisce l'unità di osservazione per tutte le analisi successive.
+Per le feature che richiedono prezzi grezzi (Sezione~\ref{sec:repr_fe}), conserviamo anche la corrispondente finestra di prezzi $p_i$.
 
 \begin{figure}[H]
 \centering
@@ -459,18 +441,18 @@ Tutte le analisi successive sono indicizzate da $i = 1, \ldots, 7217$.
 \label{sec:pipeline}
 
 La pipeline (Figura~\ref{fig:pipeline}) è non supervisionata: il numero di regimi emerge dai dati senza essere specificato a priori.
-Consiste in cinque fasi: (i)~rappresentazione, (ii)~riduzione dimensionale, (iii)~clustering topologico, (iv)~diagnostica di separazione, (v)~merge statistico.
-Ogni fase è applicata indipendentemente ai due rami (FE e MOMENT), ma con gli stessi criteri algoritmici: le eventuali differenze nei risultati riflettono i dati, non scelte soggettive.
+Dopo il preprocessing~(a), ciascuna finestra viene convertita in una rappresentazione numerica attraverso due rami paralleli, feature engineering~(b) e foundation model~(c), poi ridotta a poche coordinate tramite Diffusion Maps~(d), partizionata in modi di densità con ToMATo~(e), valutata tramite una diagnostica di separazione~(f) e infine consolidata attraverso un merge statistico Tukey HSD~(g).
+Ogni fase è applicata indipendentemente ai due rami, ma con gli stessi criteri algoritmici: le eventuali differenze nei risultati riflettono i dati, non scelte soggettive.
 
 % ── 3.1 Rappresentazioni ──────────────────────────────────────────────────────
 \subsection{Rappresentazioni}
 \label{sec:representations}
 
-Prima del clustering, ogni finestra di 512 ore deve essere convertita in un riassunto numerico compatto --- una rappresentazione --- che catturi le proprietà di mercato rilevanti per la struttura dei regimi.
+Prima del clustering, ogni finestra di 512 ore deve essere convertita in un riassunto numerico compatto, una rappresentazione, che catturi le proprietà di mercato rilevanti per la struttura dei regimi.
 Rappresentazioni diverse codificano aspetti diversi dei dati, e il loro confronto è centrale nell'analisi.
 
 Costruiamo due rappresentazioni che approcciano i dati da prospettive fondamentalmente diverse: una basata sulla conoscenza di dominio, l'altra su un foundation model che codifica la struttura temporale senza assunzioni sui mercati elettrici.
-Se le due partizioni risultanti concordano, un singolo asse di regime è sufficiente; se discordano, il mercato ne richiede più di uno.
+Se i due rami producono gli stessi raggruppamenti, livello e dinamica sono governati dalla stessa struttura e un singolo asse di regime basta a descrivere il mercato; se invece producono raggruppamenti diversi, il mercato possiede almeno due dimensioni indipendenti che un'unica etichetta non può catturare.
 
 Come discusso nella Sezione~\ref{sec:two_views}, ciascun strumento riceve la vista del residuo più adatta al proprio funzionamento:
 \begin{equation}
@@ -479,9 +461,13 @@ Come discusso nella Sezione~\ref{sec:two_views}, ciascun strumento riceve la vis
 \mathbf{x}_i^\text{MOM} = \Phi_\text{MOM}(r_i) \in \mathbb{R}^{1024}.
 \label{eq:representations}
 \end{equation}
-FE riceve gli incrementi stazionari $\Delta r_i$ insieme alla finestra di prezzi grezzi $p_i$: le sue statistiche, invarianti all'ordine temporale, catturano la forma della distribuzione degli shock e il livello di prezzo assoluto.
+FE riceve gli incrementi stazionari $\Delta r_i$ insieme alla finestra di prezzi grezzi $p_i$.
+Gli incrementi $\Delta r_i$ servono a calcolare le statistiche distribuzionali (media, varianza, curtosi, percentili) che catturano la forma degli shock, ma essendo centrati attorno a zero non contengono informazione sul livello di prezzo.
+Per questo FE include anche tre statistiche calcolate direttamente sui prezzi grezzi $p_i$ (media, 95° percentile, deviazione standard), che reintroducono il livello di prezzo assoluto rimosso dal preprocessing.
 MOMENT riceve i livelli persistenti $r_i$: il suo encoder di sequenza codifica i pattern temporali nell'ordine in cui si presentano, e la persistenza del processo è il segnale che gli permette di discriminare finestre con dinamiche diverse.
-Poiché il preprocessing (arcsinh e MSTL) rimuove trend, stagionalità e livello assoluto, il residuo $r_t$ oscilla attorno a zero indipendentemente dal fatto che il prezzo sia \$30 o \$150: MOMENT vede \emph{come} il mercato oscilla, non \emph{dove} si trova, e qualsiasi struttura catturi proviene esclusivamente dalla dinamica temporale.
+È importante notare che il preprocessing (arcsinh e MSTL) rimuove dal segnale il trend, la stagionalità e il livello assoluto di prezzo.
+Di conseguenza, il residuo $r_t$ oscilla attorno a zero sia quando il prezzo è \$30 sia quando è \$150: la differenza tra le due situazioni non sta nel livello del residuo, ma nel modo in cui oscilla, se gli shock rientrano in poche ore o persistono per giorni.
+Questa è l'unica informazione che MOMENT riceve, e se trova struttura in essa, quella struttura riguarda la dinamica temporale del mercato, non il suo livello di prezzo.
 
 \subsubsection{Feature Engineering}
 \label{sec:repr_fe}
@@ -505,7 +491,7 @@ Le feature sono organizzate in tre gruppi:
 \midrule
 \multicolumn{4}{l}{\textit{Statistiche distribuzionali (11 feature, su $\Delta r_t$)}} \\
 1  & Media            & $\overline{\Delta r}_w$ & Drift medio degli incrementi \\
-2  & Dev.\ std        & $\sigma_{\Delta r,w}$ & Volatilità delle innovazioni \\
+2  & Dev.\ std        & $\sigma_{\Delta r,w}$ & Volatilità degli shock \\
 3  & Asimmetria       & $\gamma_1(\Delta r_w)$ & Asimmetria degli shock \\
 4  & Curtosi          & $\gamma_2(\Delta r_w)$ & Peso delle code \\
 5  & Minimo           & $\min(\Delta r_w)$ & Shock negativo estremo \\
@@ -527,27 +513,23 @@ Le feature sono organizzate in tre gruppi:
 \end{tabular}
 \end{table}
 
-Tutte le 15 feature vengono standardizzate a media zero e varianza unitaria prima dell'analisi successiva.
-Non viene effettuata alcuna selezione o ponderazione delle feature: conserviamo tutte le 15 feature e lasciamo che la successiva riduzione dimensionale determini quali dimensioni contribuiscono maggiormente alla geometria della varietà.
-Si noti che FE non include feature di persistenza temporale (ACF).
-Non si tratta di una scelta: poiché FE opera sugli incrementi $\Delta r_t$, che sono stazionari, la loro autocorrelazione è prossima a zero per costruzione.
-La persistenza del processo, che si manifesta nei livelli $r_t$, è una proprietà che FE non può catturare strutturalmente: solo un modello di sequenza che riceva i livelli, come MOMENT, è in grado di codificarla.
-Questo punto merita enfasi: la separazione tra ciò che FE cattura (la distribuzione degli shock e il livello di prezzo) e ciò che MOMENT cattura (la persistenza temporale) non è il risultato di una scelta progettuale, ma una conseguenza della matematica degli input.
-FE non può vedere la persistenza perché opera su una serie senza memoria; MOMENT non può vedere il prezzo perché opera su un residuo centrato a zero.
-Il risultato non è predeterminato: come discusso nella Sezione~\ref{sec:two_views}, $r_t$ e $\Delta r_t$ sono due viste della stessa serie, non dati diversi, e nulla impedisce che le due partizioni concordino.
-Se la persistenza temporale fosse governata dal livello di prezzo, come i modelli convenzionali assumono implicitamente, MOMENT finirebbe per riscoprire gli stessi gruppi di FE e l'ARI sarebbe prossimo a~1.
-Che le due partizioni discordino, se discordano, è un fatto empirico, non un artefatto della scelta degli input.
+Le 15 feature vengono standardizzate a media zero e varianza unitaria, senza alcuna selezione o ponderazione: la successiva riduzione dimensionale determina quali contribuiscono maggiormente alla struttura.
+FE non include feature di persistenza temporale (ACF), e questo non è una scelta ma una conseguenza matematica: poiché opera sugli incrementi stazionari $\Delta r_t$, la cui autocorrelazione è prossima a zero per costruzione, qualsiasi feature basata sull'ACF sarebbe non informativa.
+La persistenza del processo si manifesta solo nei livelli $r_t$, e solo un modello di sequenza come MOMENT è in grado di codificarla.
+La separazione tra ciò che FE cattura (distribuzione degli shock e livello di prezzo) e ciò che MOMENT cattura (persistenza temporale) non è quindi il risultato di una scelta progettuale ma una conseguenza della matematica degli input: FE non può vedere la persistenza perché opera su una serie senza memoria, MOMENT non può vedere il prezzo perché opera su un residuo centrato a zero.
+Come discusso nella Sezione~\ref{sec:two_views}, $r_t$ e $\Delta r_t$ sono due viste della stessa serie e nulla impedisce che i due rami producano gli stessi raggruppamenti: se la persistenza fosse governata dal livello di prezzo, MOMENT riscoprirebbe gli stessi gruppi di FE.
+Che le due partizioni discordino, se discordano, è un fatto empirico, non un artefatto degli input.
 
 \subsubsection{Foundation model MOMENT}
 \label{sec:repr_moment}
 
-La seconda rappresentazione è prodotta da MOMENT-1-large\footnote{\url{https://github.com/moment-timeseries-foundation-model/moment}} \citep{moment2024}, un foundation model per serie temporali basato su transformer con 340 milioni di parametri.
+La seconda rappresentazione è prodotta da MOMENT-1-large\footnote{Codice sorgente, pesi pre-addestrati e documentazione sono disponibili pubblicamente all'indirizzo \url{https://github.com/moment-timeseries-foundation-model/moment}.} \citep{moment2024}, un foundation model per serie temporali basato su transformer con 340 milioni di parametri.
 A differenza delle feature costruite manualmente, MOMENT riceve la finestra di 512 ore dei livelli $r_t$ come input (Sezione~\ref{sec:two_views}) e produce un neural embedding a 1\,024 dimensioni attraverso il suo encoder --- un riassunto numerico compatto appreso dalla rete, non progettato manualmente.
 La serie $r_t$ è non stazionaria (ACF lag~1 $= 0{,}977$), ma MOMENT non calcola statistiche campionarie: è un modello di sequenza che codifica i pattern temporali nell'ordine in cui si presentano. La non-stazionarietà non è un problema --- è il segnale che permette di discriminare finestre con persistenza diversa.
 Aspetto cruciale, il modello è applicato in modalità zero-shot: non ha mai visto dati elettrici durante l'addestramento, e non eseguiamo alcun fine-tuning o adattamento di alcun tipo.
 Il modello viene utilizzato esattamente come rilasciato pubblicamente, con pesi congelati.
 Questo conta per tre ragioni.
-Primo, non c'è rischio di circolarità --- non abbiamo insegnato al modello cosa cercare, quindi qualsiasi struttura trovi è genuinamente nei dati.
+Primo, non c'è rischio di circolarità, perché non abbiamo insegnato al modello cosa cercare e qualsiasi struttura trovi è genuinamente nei dati.
 Secondo, i risultati sono pienamente riproducibili: chiunque scarichi lo stesso modello otterrà gli stessi embedding.
 Terzo, rafforza l'asimmetria con FE (Sezione~\ref{sec:representations}): MOMENT non solo non vede i livelli di prezzo, ma non è nemmeno stato addestrato su dati di mercato, quindi la sua indipendenza dall'informazione di prezzo è completa.
 
@@ -564,51 +546,57 @@ Qualsiasi struttura catturi proviene puramente dalle dinamiche temporali della s
 \label{sec:diffmaps}
 
 Ogni finestra è ora un vettore: 15 numeri (FE) o 1\,024 (MOMENT).
-Per il clustering, riduciamo la dimensionalità, identifichiamo i modi di densità, e fondiamo quelli statisticamente indistinguibili.
-
-\paragraph{Diffusion Maps.}
-Riduciamo ogni rappresentazione a poche coordinate tramite Diffusion Maps \citep{coifman2006}.
-Un kernel gaussiano $w_{ij} = \exp(-\|\mathbf{x}_i - \mathbf{x}_j\|^2 / \varepsilon)$ (con $\varepsilon$ = mediana delle distanze quadrate) definisce una matrice di transizione $T_{ij} = w_{ij} / \sum_\ell w_{i\ell}$.
-Gli autovettori dominanti di $T$ forniscono le coordinate di diffusione:
-\begin{equation}
-\Psi_d(i) = \bigl(\lambda_1 \psi_1(i),\ldots,\lambda_d \psi_d(i)\bigr).
-\label{eq:diffusion_coordinates}
-\end{equation}
-La dimensionalità $d$ è determinata dallo stesso criterio per entrambi i rami: il \textbf{gap spettrale} degli autovalori.
-Per FE, il gap è netto tra $\lambda_2$ e $\lambda_3$ (rapporto 1,89), dando $d = 2$.
-Per MOMENT, un plateau ($\lambda_2$--$\lambda_4$, rapporti $\approx 1{,}04$--$1{,}08$) indica segnale residuo; il gap più netto è a $\lambda_4/\lambda_5 = 1{,}41$, seguito da un rapporto $\lambda_5/\lambda_6 = 1{,}19$ ancora moderato. La pipeline adotta $d = 5$ per includere il segnale residuo di $\lambda_5$.
-La Figura~\ref{fig:spectral_gap} mostra il decadimento degli autovalori per entrambe le rappresentazioni: le barre indicano l'importanza di ciascuna coordinata di diffusione e la linea rossa segna il punto dove il segnale cede al rumore.
+Il primo passo consiste nel ridurre la dimensionalità tramite Diffusion Maps \citep{coifman2006}: un kernel gaussiano $w_{ij} = \exp(-\|\mathbf{x}_i - \mathbf{x}_j\|^2 / \varepsilon)$ (con $\varepsilon$ = mediana delle distanze quadrate) definisce una matrice di transizione $T_{ij} = w_{ij} / \sum_\ell w_{i\ell}$, i cui autovettori dominanti forniscono le coordinate di diffusione $\Psi_d(i) = \bigl(\lambda_1 \psi_1(i),\ldots,\lambda_d \psi_d(i)\bigr)$.
+Resta da decidere quante coordinate mantenere.
+Gli autovalori $\lambda_1 > \lambda_2 > \ldots$ sono ordinati per importanza decrescente: ciascuno misura quanta struttura è catturata dalla coordinata corrispondente.
+Il criterio è il gap spettrale (Figura~\ref{fig:spectral_gap}): si osserva la sequenza degli autovalori e si cerca il punto in cui il rapporto $\lambda_k / \lambda_{k+1}$ presenta un salto netto, segnalando che le coordinate successive contribuiscono molto meno delle precedenti.
+Tutto ciò che precede il gap è segnale, tutto ciò che segue è prevalentemente rumore.
+Per FE il salto è evidente dopo $\lambda_2$, e due coordinate bastano a catturare la struttura ($d = 2$).
+Per MOMENT la situazione è più sfumata: diverse coordinate consecutive hanno importanza simile, formando un plateau visibile nella Figura~\ref{fig:spectral_gap}, e il salto principale cade dopo $\lambda_4$; la pipeline adotta $d = 5$ per includere il segnale residuo della quinta coordinata.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{spectral_gap.png}
-\caption{Gap spettrale delle Diffusion Maps. Ogni barra rappresenta un autovalore (coordinata di diffusione), ordinato per importanza decrescente. A sinistra (FE): il salto netto dopo $\lambda_2$ ($\lambda_2/\lambda_3 = 1{,}89$) indica che due coordinate bastano a catturare la struttura. A destra (MOMENT): le coordinate 2--4 formano un plateau di valori simili (rapporti $\approx 1{,}04$--$1{,}08$), il gap principale cade tra $\lambda_4$ e $\lambda_5$ ($\lambda_4/\lambda_5 = 1{,}41$), e $\lambda_5$ conserva ancora segnale residuo ($\lambda_5/\lambda_6 = 1{,}19$). La pipeline adotta $d = 5$ per includere questo segnale.}
+\caption{Gap spettrale delle Diffusion Maps. Ogni barra rappresenta un autovalore, ordinato per importanza decrescente. A sinistra (FE): il salto dopo $\lambda_2$ indica $d = 2$. A destra (MOMENT): il gap principale cade dopo $\lambda_4$, ma $\lambda_5$ conserva ancora segnale apprezzabile, e la pipeline adotta $d = 5$ per includerlo. La linea rossa tratteggiata segna la dimensionalità scelta.}
 \label{fig:spectral_gap}
 \end{figure}
 
-\paragraph{ToMATo.}
-Applichiamo ToMATo (Topological Mode Analysis Tool) \citep{chazal2013} per identificare i modi di densità.
-ToMATo stima la densità con $k$-nearest neighbors, identifica i picchi locali e li separa dal rumore tramite il diagramma di persistenza: i modi con persistenza superiore al gap naturale sono struttura reale.
-Il numero di cluster $K$ emerge dai dati, senza specificazione a priori.
-Risultato: FE produce 48 modi, MOMENT 47.
-
-\paragraph{Diagnostica di separazione.}
+Sulle coordinate di diffusione applichiamo ToMATo (Topological Mode Analysis Tool) \citep{chazal2013}, che stima la densità locale con $k$-nearest neighbors, identifica i picchi e li separa dal rumore tramite il diagramma di persistenza: il numero di cluster $K$ emerge dai dati senza specificazione a priori, producendo 48 modi per FE e 47 per MOMENT.
+\subsection{Diagnostica di separazione e merge}
 \label{sec:cross_projection}
-Una volta ottenute le due partizioni, dobbiamo capire \emph{cosa} ciascuna separa.
+
+A questo punto dobbiamo capire \emph{cosa} ciascuna partizione separa.
 Per farlo, utilizziamo un insieme di 19 feature diagnostiche come metro di misura esterno.
 Di queste, 15 sono le stesse feature FE già descritte (statistiche distribuzionali su $\Delta r_t$ e statistiche di prezzo su $p_t$).
-Le restanti 4 sono le autocorrelazioni ai lag 1, 6, 24 e 168 ore, calcolate sui \emph{livelli} $r_t$ all'interno di ogni finestra.
-Queste 4 ACF non fanno parte delle feature di input di FE, e non avrebbe senso includerle: FE opera sugli incrementi stazionari $\Delta r_t$, la cui autocorrelazione è prossima a zero per costruzione.
-Le ACF sono significative solo se calcolate sui livelli persistenti $r_t$, e vengono introdotte qui esclusivamente come strumento diagnostico, per misurare se e quanto ciascuna partizione separa la dimensione della persistenza temporale.
+Le restanti 4 sono le autocorrelazioni ai lag 1, 6, 24 e 168 ore.
+Queste ACF meritano una precisazione: non fanno parte delle 15 feature di input di FE e non potrebbero farne parte.
+Come discusso nella Sezione~\ref{sec:two_views}, FE opera sugli incrementi stazionari $\Delta r_t$, che per costruzione non hanno memoria (ACF $\approx 0$): calcolare l'autocorrelazione su $\Delta r_t$ produrrebbe valori prossimi a zero per tutte le finestre, senza alcun potere discriminante.
+L'autocorrelazione diventa informativa solo se calcolata sui livelli persistenti $r_t$, dove misura direttamente quanto velocemente il mercato assorbe uno shock (Sezione~\ref{sec:model_spec}).
+Le 4 ACF vengono quindi introdotte qui con un ruolo esclusivamente diagnostico: non partecipano al clustering, ma servono a verificare \emph{dopo} il clustering se la partizione MOMENT ha effettivamente catturato la persistenza temporale e se la partizione FE non l'ha catturata.
 
 Per ciascuna delle 19 feature, calcoliamo il rapporto di correlazione $\eta^2$ \citep{fisher1925} rispetto a entrambe le partizioni.
 $\eta^2$ misura la quota di varianza della feature spiegata dai cluster: un valore alto indica che il clustering separa bene quella feature, un valore basso indica che non la separa.
-Il confronto $\eta^2_\text{FE}$ vs $\eta^2_\text{MOM}$ per ciascuna feature (Tabella~\ref{tab:cross_projection}) rivela un pattern diagonale:
-\begin{itemize}[nosep]
-\item FE separa le feature distribuzionali e di prezzo ($\eta^2_\text{FE} = 0{,}50$ su LMP medio) ma non la persistenza ($\eta^2_\text{FE} = 0{,}18$ su ACF 6h).
-\item MOMENT separa la persistenza ($\eta^2_\text{MOM} = 0{,}42$ su ACF 6h) ma non il prezzo ($\eta^2_\text{MOM} = 0{,}09$ su LMP medio).
-\end{itemize}
-La variabile di merge per ciascun ramo è la feature con il più alto $\eta^2$: LMP medio per FE, ACF al lag 6h per MOMENT.
+Per ciascuna feature $f$ e ciascuna partizione $P$, il rapporto di correlazione è definito come
+\begin{equation}
+\eta^2(f, P) = \frac{\sum_k n_k (\bar{f}_k - \bar{f})^2}{\sum_i (f_i - \bar{f})^2},
+\label{eq:eta2}
+\end{equation}
+dove $\bar{f}_k$ è la media della feature nel cluster $k$, $n_k$ la sua dimensione e $\bar{f}$ la media globale.
+Il numeratore misura la varianza \emph{tra} i cluster, il denominatore la varianza totale: $\eta^2 = 0$ significa che i cluster non separano affatto quella feature, $\eta^2 = 1$ che la separano perfettamente.
+
+La Figura~\ref{fig:eta2_scatter} e la Tabella~\ref{tab:cross_projection} mostrano il risultato.
+Nel grafico, ogni punto è una feature posizionata in base al suo $\eta^2$ rispetto alle due partizioni: le feature che FE separa bene cadono a destra (alto $\eta^2_\text{FE}$), quelle che MOMENT separa bene cadono in alto (alto $\eta^2_\text{MOM}$).
+Il pattern è diagonale: le feature distribuzionali e di prezzo (punti blu e verdi) si concentrano nella zona in basso a destra, le ACF diagnostiche (triangoli arancioni) nella zona in alto a sinistra.
+Nessuna feature cade nell'angolo in alto a destra, dove cadrebbe se entrambe le partizioni la separassero.
+In concreto, FE separa fortemente il livello di prezzo ($\eta^2_\text{FE} = 0{,}50$ su LMP medio) ma non la persistenza ($\eta^2_\text{FE} = 0{,}18$ su ACF 6h), mentre MOMENT separa la persistenza ($\eta^2_\text{MOM} = 0{,}42$ su ACF 6h) ma non il prezzo ($\eta^2_\text{MOM} = 0{,}09$ su LMP medio).
+La variabile di merge per ciascun ramo è quindi la feature con il più alto $\eta^2$: LMP medio per FE, ACF al lag 6h per MOMENT.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{eta2_scatter.png}
+\caption{Diagnostica di separazione. Ogni punto è una feature, posizionata in base al suo $\eta^2$ rispetto alla partizione FE (asse orizzontale) e MOMENT (asse verticale). Le feature distribuzionali e di prezzo (blu e verdi) cadono in basso a destra: FE le separa, MOMENT no. Le ACF diagnostiche (triangoli arancioni) cadono in alto a sinistra: MOMENT le separa, FE no. Il pattern diagonale conferma che le due partizioni catturano dimensioni diverse.}
+\label{fig:eta2_scatter}
+\end{figure}
 
 \begin{table}[H]
 \centering
@@ -648,11 +636,10 @@ ACF 168h         & diag. & 0,007 & 0,030 \\
 \end{tabular}
 \end{table}
 
-\paragraph{Merge Tukey HSD.}
+Infine, i 48 modi FE e i 47 modi MOMENT vengono consolidati tramite Tukey HSD ($\alpha = 0{,}05$).
 \label{sec:tukey_merge}
-I 48 (FE) e 47 (MOMENT) modi iniziali vengono consolidati tramite Tukey HSD ($\alpha = 0{,}05$) sulla variabile di merge.
-La procedura fonde iterativamente le coppie di modi la cui differenza sulla variabile target non è significativa, usando il range studentizzato per controllare i confronti multipli.
-Risultato: FE $48 \to 9$ regimi economici ($E$), MOMENT $47 \to 9$ regimi dinamici ($D$).
+La procedura prende la variabile che ciascun ramo separa meglio, l'LMP medio per FE e l'ACF al lag 6\,h per MOMENT, e fonde iterativamente le coppie di modi la cui differenza su quella variabile non è statisticamente significativa.
+Il risultato sono $9$ regimi economici ($E$) e $9$ regimi dinamici ($D$).
 
 
 
@@ -674,7 +661,7 @@ d_i \in \{0,\ldots,8\},
 \end{equation}
 dove $e_i$ è il regime economico e $d_i$ è il regime dinamico.
 Entrambe le etichette si riferiscono alla stessa finestra di 512 ore.
-Le sezioni seguenti esaminano ciascun asse individualmente (Sezioni~\ref{sec:economic_axis}--\ref{sec:dynamic_axis}) e poi verificano se i due assi siano ridondanti o indipendenti (Sezione~\ref{sec:two_axes}).
+Le sezioni seguenti esaminano ciascun asse individualmente (Sezioni~\ref{sec:economic_axis}--\ref{sec:dynamic_axis}) e poi verificano se i due assi siano ridondanti o quasi ortogonali (Sezione~\ref{sec:two_axes}).
 
 % ── 3.2 Asse economico ────────────────────────────────────────────────────────
 \subsection{Asse economico}
@@ -733,9 +720,10 @@ I 9 regimi coprono \$30--151/MWh.
 Il regime dominante è $E_3$ (Carico di base, 35,1\% delle finestre), seguito da $E_7$ (Domanda, 22,8\%).
 I regimi a prezzo elevato ($E_4$, $E_2$, $E_1$) sono rari (meno del 5\% ciascuno) ma economicamente critici.
 
-I regimi sono temporalmente stabili.
-Alla risoluzione di 6 ore delle finestre scorrevoli, l'etichetta di regime cambia nel 10,2\% delle coppie consecutive.
-Il tempo medio trascorso in un regime prima di transitare (tempo di soggiorno) è di circa 60 ore (2,5 giorni), coerente con le scale temporali dei fronti meteorologici e delle variazioni settimanali della domanda.
+I regimi sono temporalmente stabili, come si verifica confrontando le etichette di finestre consecutive.
+Poiché le finestre si susseguono ogni $S = 6$ ore, per ogni coppia consecutiva $(i, i+1)$ osserviamo se l'etichetta di regime cambia o resta la stessa: il tasso di transizione è la frazione di coppie in cui l'etichetta cambia.
+Nel nostro caso, l'etichetta cambia nel 10,2\% delle coppie, il che implica un tempo medio di soggiorno di circa 60 ore (2,5 giorni), calcolato come $S / \text{tasso di transizione} = 6 / 0{,}102 \approx 59$\,h.
+Questa durata è coerente con le scale temporali dei fronti meteorologici e delle variazioni settimanali della domanda documentate nella letteratura sui prezzi elettrici \citep{weron2006, karakatsani2008}.
 Le transizioni avvengono prevalentemente tra livelli di prezzo adiacenti: i regimi di spike ($E_4$, $E_2$, $E_1$) si spostano solo verso regimi contigui, senza mai saltare direttamente a un regime a basso prezzo.
 
 
@@ -750,7 +738,7 @@ La Figura~\ref{fig:merge_dynamic} mostra la distribuzione dell'ACF per ciascun r
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.85\textwidth]{merge_process_dynamic.png}
-\caption{Regimi dinamici dopo il merge Tukey HSD. In alto: distribuzione dell'ACF al lag 6\,h per regime. In basso: i 9 regimi ordinati per ACF media.}
+\caption{Distribuzione dell'ACF al lag 6\,h nei 9 regimi dinamici dopo merge Tukey HSD (da 47 modi iniziali). Ogni boxplot mostra la distribuzione dell'ACF delle finestre assegnate al regime. I regimi sono ordinati per persistenza crescente e annotati con dimensione campionaria e ACF media.}
 \label{fig:merge_dynamic}
 \end{figure}
 
@@ -792,9 +780,9 @@ Primo, i due regimi dominanti, $D_0$ (38,6\%) e $D_2$ (33,3\%), coprono insieme 
 Il mercato trascorre la maggior parte del tempo in condizioni di persistenza moderata-alta (ACF 0,68--0,75), con escursioni meno frequenti verso regimi a rapida reversione ($D_7$, ACF $= 0{,}38$) o shock molto persistenti ($D_8$, ACF $= 0{,}94$).
 Questa distribuzione asimmetrica è coerente con la letteratura sulla dinamica intra-giornaliera dei prezzi elettrici \citep{karakatsani2008}, che documenta come i periodi di stress rappresentino una frazione minoritaria ma economicamente critica del tempo di mercato.
 
-Secondo, i regimi dinamici non sono un sottoprodotto dell'asse economico: conoscere il regime di prezzo di una finestra non predice il suo regime di persistenza, come confermato formalmente dall'ARI quasi nullo nella Sezione~\ref{sec:two_axes}.
-Aspetto cruciale, il livello di prezzo non è monotono attraverso i regimi dinamici: $D_4$ e $D_7$, con ACF molto diversa (0,51 e 0,38), hanno LMP medi simili (\$35--\$37/MWh).
-Questo conferma che l'asse dinamico cattura una dimensione genuinamente indipendente dal prezzo, non un suo sottoprodotto.
+Secondo, già dalla Tabella~\ref{tab:dynamic_regimes} emerge un indizio importante: il livello di prezzo non è monotono attraverso i regimi dinamici.
+Ad esempio, $D_4$ e $D_7$ hanno persistenze molto diverse (ACF 0,51 e 0,38) ma LMP medi simili (\$35--\$37/MWh), mentre $D_3$ e $D_8$ hanno entrambi LMP $= \$75$ ma persistenze molto diverse (ACF 0,87 e 0,94).
+Questo suggerisce che l'asse dinamico cattura qualcosa di diverso dal prezzo, un'ipotesi che la Sezione~\ref{sec:two_axes} sottoporrà a verifica formale.
 
 Terzo, la volatilità ($\sigma_r$) cresce con la persistenza: i regimi a rapida reversione hanno $\sigma_r \approx 0{,}12$, i più persistenti $\sigma_r \approx 0{,}48$.
 Questo accoppiamento persistenza--volatilità richiama uno degli stylized fact più robusti dei mercati finanziari, il volatility clustering \citep{cont2001}: periodi di alta volatilità tendono a raggrupparsi e a persistere nel tempo.
@@ -871,7 +859,7 @@ Il residuo MSTL $r_t$ segue un processo mean-reverting verso zero:
 r_t = (1 - \alpha)\, r_{t-1} + s_t, \qquad s_t \sim (0, \sigma_s^2),
 \label{eq:mean_reverting}
 \end{equation}
-dove $\alpha \in (0, 1)$ è la velocità di mean-reversion e $s_t$ è la componente stocastica (innovazione).
+dove $\alpha \in (0, 1)$ è la velocità di mean-reversion e $s_t$ è lo shock casuale.
 Un valore di $\alpha$ vicino a zero indica che il processo è quasi un random walk (lo shock persiste indefinitamente); un valore vicino a uno indica una rapida mean-reversion.
 La \emph{half-life} --- il tempo per dimezzare uno shock --- è $t_{1/2} = -\ln 2 / \ln(1-\alpha)$: con $\alpha = 0{,}15$, la half-life è di circa 4 ore.
 
@@ -914,7 +902,7 @@ La Figura~\ref{fig:alpha_heatmap} visualizza $\alpha$ nell'intero spazio $(E, D)
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.85\textwidth]{alpha_heatmap.png}
-\caption{Mean-reversion $\alpha$ nello spazio congiunto $(E, D)$. Verde = rapida reversione ($\alpha$ alto), rosso = persistente ($\alpha$ basso). Celle vuote = combinazioni non osservate.}
+\caption{Mean-reversion $\alpha$ nello spazio congiunto $(E, D)$. Verde = rapida reversione ($\alpha$ alto), rosso = persistente ($\alpha$ basso). Sono mostrate solo le celle con almeno 20 finestre; celle vuote = combinazioni con meno di 20 finestre o non osservate.}
 \label{fig:alpha_heatmap}
 \end{figure}
 
@@ -936,7 +924,7 @@ $E_2$ (Spike inv., \$120) & 0,021 & 32,6\,h & 0,013--0,025 & 27\,h--53\,h \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-\footnotesize\textit{Nota:} $\alpha(E)$ = valore unico del modello a un asse. Range = variazione tra celle $(E, D)$ dello stesso regime $E$.
+\footnotesize\textit{Nota:} $\alpha(E)$ = valore unico del modello a un asse. Range = variazione tra celle $(E, D)$ con almeno 20 finestre.
 Half-life $= -\ln 2 / \ln(1-\alpha)$. Ordinati per LMP crescente.
 \end{table}
 
@@ -1027,7 +1015,7 @@ L'asse dinamico, scoperto dalla pipeline senza alcuna assunzione parametrica, fo
 \label{sec:garch}
 
 Un benchmark naturale per la modellazione della varianza condizionata è la famiglia GARCH \citep{bollerslev1986}.
-Stimiamo cinque varianti sulla serie completa degli incrementi $\Delta r_t$ ($N = 43\,811$), ciascuna con componente media AR(1): GARCH(1,1) con innovazioni normali, GARCH(1,1) con Student-$t$, GARCH(2,2) con Student-$t$, GJR-GARCH(1,1) con Student-$t$ (effetto leverage), ed EGARCH(1,1) con Student-$t$.
+Stimiamo cinque varianti sulla serie completa degli incrementi $\Delta r_t$ ($N = 43\,811$), ciascuna con componente media AR(1): GARCH(1,1) con errori normali, GARCH(1,1) con Student-$t$, GARCH(2,2) con Student-$t$, GJR-GARCH(1,1) con Student-$t$ (effetto leverage), ed EGARCH(1,1) con Student-$t$.
 Per ciascun modello calcoliamo la volatilità condizionata $\sigma_t^\text{G}$, la aggreghiamo a livello di finestra (media su 512 ore) e misuriamo quanto essa si allinea con i regimi $E$ e $D$ tramite $\eta^2$.
 La Tabella~\ref{tab:garch} riassume i risultati.
 
@@ -1102,7 +1090,7 @@ Un'etichetta convenzionale a singolo asse ``spike'' raggruppa eventi ad alto pre
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.65\textwidth]{two_axis_grid.png}
-\caption{Spazio dei regimi a due assi. Ogni punto è una finestra, posizionata per LMP medio (asse orizzontale) e ACF al lag 6\,h (asse verticale). I quattro quadranti (prezzo alto/basso $\times$ persistenza alta/bassa) sono tutti popolati, confermando che le due dimensioni variano indipendentemente.}
+\caption{Spazio dei regimi a due assi. Ogni punto è una finestra, posizionata per LMP medio (asse orizzontale) e ACF al lag 6\,h (asse verticale). Tutte e quattro le combinazioni operative (prezzo alto/basso $\times$ persistenza alta/bassa) sono popolate.}
 \label{fig:quadrants}
 \end{figure}
 
@@ -1120,7 +1108,7 @@ L'embedding MOMENT a 1\,024 dimensioni si riduce a 5 coordinate di diffusione (g
 
 La struttura a due assi si connette alla letteratura sul regime-switching in modo nuovo.
 Gli approcci classici basati su HMM assumono un singolo stato latente che guida simultaneamente sia il livello di prezzo sia la dinamica della volatilità.
-La nostra scoperta suggerisce che questa assunzione potrebbe essere troppo restrittiva: livello e persistenza sembrano essere governati da processi latenti indipendenti.
+La nostra scoperta suggerisce che questa assunzione potrebbe essere troppo restrittiva: livello e persistenza sembrano essere governati da processi latenti distinti.
 Un mercato può trovarsi in un regime economico ad alto prezzo e in un regime dinamico a rapida reversione simultaneamente --- una combinazione che un HMM a catena singola non può rappresentare senza un'espansione esponenziale dello spazio degli stati.
 
 % --- Validazione e limitazioni ---
