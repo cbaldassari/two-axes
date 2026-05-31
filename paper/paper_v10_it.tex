@@ -68,8 +68,7 @@ La struttura bidimensionale consente di costruire un modello mean-reverting cond
 \label{sec:introduction}
 
 Il mercato elettrico è organizzato lungo due assi quasi ortogonali, non uno.
-Oltre al livello di prezzo, l'unica dimensione catturata dai modelli convenzionali, esiste un asse di persistenza temporale che determina quanto a lungo uno shock si propaga nel sistema.
-I due assi sono quasi ortogonali: conoscere il regime di prezzo non dice quasi nulla sulla velocità di mean-reversion, e viceversa.
+Oltre al livello di prezzo, l'unica dimensione catturata dai modelli convenzionali, esiste un asse di persistenza temporale che determina quanto a lungo uno shock si propaga nel sistema: conoscere il regime di prezzo non dice quasi nulla sulla velocità di mean-reversion, e viceversa.
 Questo lavoro scopre questa struttura bidimensionale attraverso una pipeline non supervisionata e ne quantifica le conseguenze per la modellazione e la gestione del rischio.
 
 % --- 1.1 Il contesto economico ---
@@ -105,8 +104,7 @@ Due sviluppi recenti creano l'opportunità di testare questa ipotesi.
 Primo, i foundation model per serie temporali \citep{yeh2023}: reti neurali di grandi dimensioni addestrate su centinaia di migliaia di serie temporali eterogenee (meteorologia, finanza, sanità, ingegneria), riutilizzabili su qualsiasi nuova serie senza addestramento aggiuntivo.
 La diversità di pattern osservati durante il pre-addestramento (trend, stagionalità, persistenza, cambi di regime) viene condensata nei parametri della rete, creando un patrimonio di conoscenze trasferibile a qualsiasi dominio \citep{tsfm_survey2025}.
 Non è necessario decidere cosa cercare: è il modello a trovare ciò che i dati contengono.
-Tra i foundation model disponibili, adottiamo MOMENT \citep{moment2024} perché soddisfa tre requisiti: è progettato per serie temporali (non adattato da modelli linguistici), fornisce una modalità nativa di embedding per l'apprendimento delle rappresentazioni (non solo per la previsione), ed è interamente open source.
-MOMENT è particolarmente adatto perché, tra i foundation model disponibili al momento dello studio (Chronos, TimesFM, Moirai), è l'unico a soddisfare contemporaneamente tutti e tre i requisiti.
+Tra i foundation model disponibili al momento dello studio, adottiamo MOMENT \citep{moment2024} perché è particolarmente adatto: è progettato specificamente per serie temporali (non adattato da modelli linguistici), fornisce una modalità nativa di embedding per l'apprendimento delle rappresentazioni (non solo per la previsione), ed è interamente open source, a differenza di alternative come Chronos, TimesFM e Moirai che non soddisfano contemporaneamente tutti e tre i requisiti.
 Secondo, l'analisi topologica dei dati \citep{carlsson2009, edelsbrunner2010} offre metodi di clustering che determinano il numero di regimi direttamente dalla geometria dei dati, senza specificare $K$ in anticipo.
 Ad oggi, i foundation model sono stati applicati ai mercati elettrici solo per la previsione dei prezzi \citep{tsfm_epf_benchmark2025, pricefm2025} e il rilevamento di anomalie \citep{tsfm_anomaly_energy2024}; l'approccio qui proposto, utilizzare le loro rappresentazioni come input per un clustering non supervisionato, non ha precedenti nella letteratura sui mercati energetici.
 
@@ -274,7 +272,7 @@ STL decompone una serie temporale in trend, una componente stagionale e residuo 
 y_t = \tau_t + s_t^{(24)} + s_t^{(168)} + s_t^{(8760)} + r_t,
 \label{eq:mstl}
 \end{equation}
-dove $\tau_t$ è il trend, $s_t^{(P)}$ è la componente stagionale al periodo $P$, e $r_t$ è il residuo --- il segnale destagionalizzato che serve come input per il rilevamento dei regimi.
+dove $\tau_t$ è il trend, $s_t^{(P)}$ è la componente stagionale al periodo $P$, e $r_t$ è il residuo, il segnale destagionalizzato che serve come input per il rilevamento dei regimi.
 I tre periodi stagionali sono:
 
 \begin{table}[H]
@@ -319,7 +317,7 @@ Residuo MSTL $r_t$ & 0,005 & 0,286 & 0,21 & 4,50 \\
 Per verificare l'efficacia della destagionalizzazione esaminiamo la funzione di autocorrelazione (ACF).
 La Tabella~\ref{tab:acf} mostra che l'ACF al lag 24 scende da 0,890 a 0,770 e quella al lag 168 da 0,678 a 0,238: la decomposizione MSTL attenua le componenti stagionali ma il residuo conserva una fortissima persistenza oraria ($\text{ACF lag~1} = 0{,}977$).
 Questa persistenza residua non è un'imperfezione del filtraggio: è la \emph{materia prima stocastica} del mercato.
-Una volta rimosse le componenti cicliche deterministiche, ciò che resta è la memoria del processo --- quanto velocemente il mercato assorbe uno shock --- e la sua intensità varia nel tempo.
+Una volta rimosse le componenti cicliche deterministiche, ciò che resta è la memoria del processo, quanto velocemente il mercato assorbe uno shock, e la sua intensità varia nel tempo.
 Come vedremo nella Sezione~\ref{sec:model_insufficiency}, è proprio la variabilità di questa persistenza a costituire l'informazione che i modelli che descrivono il mercato con un'unica etichetta di regime faticano ad allocare.
 
 \begin{table}[H]
@@ -797,12 +795,12 @@ La letteratura sulla persistenza degli spike nei mercati elettrici \citep{christ
 \label{sec:two_axes}
 
 Le due sezioni precedenti hanno descritto ciascun asse separatamente: l'asse economico separa i livelli di prezzo, l'asse dinamico separa la persistenza temporale.
-Una domanda naturale sorge: si tratta di dimensioni genuinamente diverse, o sono due visioni della stessa struttura sottostante --- cioè, le finestre ad alto prezzo coincidono sempre con quelle ad alta persistenza, cosicché conoscere il regime di prezzo dice automaticamente anche il regime di persistenza?
+Una domanda naturale sorge: si tratta di dimensioni genuinamente diverse, o sono due visioni della stessa struttura sottostante, cioè le finestre ad alto prezzo coincidono sempre con quelle ad alta persistenza, cosicché conoscere il regime di prezzo dice automaticamente anche il regime di persistenza?
 
 La distinzione è importante.
-Se le due partizioni concordano largamente --- se le finestre che condividono un regime economico tendono anche a condividere un regime dinamico --- allora un asse è ridondante.
+Se le due partizioni concordano largamente, se le finestre che condividono un regime economico tendono anche a condividere un regime dinamico, allora un asse è ridondante.
 Una singola etichetta di regime sarebbe sufficiente, e la seconda rappresentazione non aggiungerebbe informazione.
-Se invece le due partizioni discordano --- se conoscere il regime di prezzo di una finestra dice poco sul suo regime di persistenza --- allora lo stato di mercato non può essere riassunto da una singola etichetta.
+Se invece le due partizioni discordano, se conoscere il regime di prezzo di una finestra dice poco sul suo regime di persistenza, allora lo stato di mercato non può essere riassunto da una singola etichetta.
 Ne servono due: una per il livello di prezzo e una per la dinamica.
 
 % --- ARI ---
@@ -1004,9 +1002,7 @@ Questa inefficienza allocativa non è risolvibile affinando la stima di $\alpha(
 \paragraph{L'asse D e la microstruttura del mercato.}
 Dal punto di vista della microstruttura, un'interpretazione plausibile è che l'asse $D$ rifletta l'elasticità temporale dell'offerta e i vincoli operativi della rete, come congestioni, rampe di accensione dei generatori termici e inerzia del parco di generazione, fattori che sono per loro natura indipendenti dal livello nominale del prezzo.
 Un mercato può trovarsi simultaneamente in un regime di prezzo elevato e in condizione di rapida mean-reversion (uno spike transitorio da picco di domanda che rientra in poche ore) oppure in un regime di prezzo moderato ma con persistenza elevata (un prolungato stress da offerta durante un'ondata di calore estiva).
-
-Il modello convenzionale a singola etichetta di regime non è in grado di rappresentare queste combinazioni.
-L'asse dinamico, scoperto dalla pipeline senza alcuna assunzione parametrica, fornisce la dimensione mancante e consente una caratterizzazione del rischio che va oltre il livello nominale di prezzo.
+Il modello convenzionale a singola etichetta di regime non è in grado di rappresentare queste combinazioni, e l'asse dinamico fornisce la dimensione mancante per una caratterizzazione del rischio che va oltre il livello nominale di prezzo.
 
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -1096,13 +1092,9 @@ Un'etichetta convenzionale a singolo asse ``spike'' raggruppa eventi ad alto pre
 
 % --- Perché MOMENT cattura le dinamiche ---
 
-Una domanda importante è \emph{perché} MOMENT separi la persistenza temporale mentre le feature costruite manualmente no.
-Il punto di partenza è che il residuo MSTL conserva una forte dipendenza seriale (ACF lag~1 $= 0{,}977$, Tabella~\ref{tab:acf}): il preprocessing rimuove i cicli stagionali ma preserva la persistenza a breve termine che distingue le diverse dinamiche di mercato.
-Questa persistenza è la materia prima che entrambe le rappresentazioni ricevono, ma la elaborano in modo molto diverso.
-FE opera sugli incrementi $\Delta r_t$ (stazionari): le sue feature distribuzionali catturano la forma degli shock, non la persistenza temporale --- e per costruzione non include feature ACF, che sarebbero prossime a zero sugli incrementi (Sezione~\ref{sec:repr_fe}).
-MOMENT, al contrario, riceve i livelli $r_t$ (persistenti, ACF lag~1 $= 0{,}977$) e codifica la struttura temporale come suo segnale \emph{primario}: il suo obiettivo di pre-addestramento basato sulla ricostruzione mascherata (\emph{masked time-series modeling}) forza l'encoder del transformer ad analizzare i pattern nel loro contesto temporale, rendendolo architetturalmente idoneo a intercettare e codificare proprio le variazioni della memoria stocastica che gli incrementi eliminano.
-Come dimostrato nella Sezione~\ref{sec:model_insufficiency}, questa capacità si traduce in un asse di persistenza che governa il parametro di mean-reversion $\alpha$ ($\Delta\text{BIC} = -3\,875$) e che nessuna combinazione di feature distribuzionali è in grado di isolare.
-L'embedding MOMENT a 1\,024 dimensioni si riduce a 5 coordinate di diffusione (gap spettrale, Sezione~\ref{sec:diffmaps}), confermando che il foundation model organizza le sue rappresentazioni lungo un numero ridotto di modi temporali dominanti.
+Come discusso nella Sezione~\ref{sec:repr_fe}, la separazione tra i due assi è una conseguenza della matematica degli input: FE opera sugli incrementi stazionari e cattura la distribuzione degli shock, MOMENT opera sui livelli persistenti e cattura la dinamica temporale.
+Il meccanismo specifico che rende MOMENT efficace è il suo obiettivo di pre-addestramento basato sulla ricostruzione mascherata (\emph{masked time-series modeling}), che forza l'encoder del transformer ad analizzare i pattern nel loro contesto temporale, rendendolo architetturalmente idoneo a codificare le variazioni della memoria stocastica.
+Il risultato è un asse di persistenza che governa il parametro di mean-reversion $\alpha$ ($\Delta\text{BIC} = -3\,875$, Sezione~\ref{sec:model_insufficiency}) e che nessuna combinazione di feature distribuzionali è in grado di isolare.
 
 % --- Relazione con la letteratura esistente ---
 
