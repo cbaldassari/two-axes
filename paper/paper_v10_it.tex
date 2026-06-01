@@ -851,42 +851,23 @@ L'omissione dell'asse dinamico produce un \emph{underfitting locale della persis
 \subsubsection{Specificazione del modello}
 \label{sec:model_spec}
 
-\paragraph{Specificazione.}
-Il residuo MSTL $r_t$ segue un processo mean-reverting verso zero:
+Il residuo MSTL $r_t$ segue un processo mean-reverting verso zero,
 \begin{equation}
 r_t = (1 - \alpha)\, r_{t-1} + s_t, \qquad s_t \sim (0, \sigma_s^2),
 \label{eq:mean_reverting}
 \end{equation}
 dove $\alpha \in (0, 1)$ è la velocità di mean-reversion e $s_t$ è lo shock casuale.
-Un valore di $\alpha$ vicino a zero indica che il processo è quasi un random walk (lo shock persiste indefinitamente); un valore vicino a uno indica una rapida mean-reversion.
-La \emph{half-life} --- il tempo per dimezzare uno shock --- è $t_{1/2} = -\ln 2 / \ln(1-\alpha)$: con $\alpha = 0{,}15$, la half-life è di circa 4 ore.
-
-\paragraph{Stima.}
-Il parametro $\alpha$ è direttamente misurabile dall'autocorrelazione al lag~1 del residuo all'interno di ogni finestra di 512 ore:
-\begin{equation}
-\text{ACF}(1) \approx 1 - \alpha.
-\label{eq:acf_alpha}
-\end{equation}
-Ogni finestra~$i$ ha il proprio $\hat{\alpha}_i = 1 - \widehat{\text{ACF}}_1(r_i)$, calcolato sui livelli $r_t$.
-La volatilità del regime è misurata sugli incrementi: $\hat{\sigma}_i = \text{std}(\Delta r_i)$, calcolata sulla serie stazionaria $\Delta r_t$.
+Un valore di $\alpha$ vicino a zero indica che il processo è quasi un random walk e lo shock persiste indefinitamente, mentre un valore vicino a uno indica una rapida mean-reversion.
+La half-life, cioè il tempo necessario per dimezzare uno shock, è $t_{1/2} = -\ln 2 / \ln(1-\alpha)$: con $\alpha = 0{,}15$ la half-life è di circa 4 ore.
+Il parametro $\alpha$ è direttamente misurabile dall'autocorrelazione al lag~1 del residuo all'interno di ogni finestra di 512 ore, dato che $\text{ACF}(1) \approx 1 - \alpha$, e ogni finestra~$i$ ha quindi il proprio $\hat{\alpha}_i = 1 - \widehat{\text{ACF}}_1(r_i)$ calcolato sui livelli $r_t$.
+La volatilità è invece misurata sugli incrementi stazionari, $\hat{\sigma}_i = \text{std}(\Delta r_i)$: la mean-reversion $\alpha$ è stimata sulla variabile che MOMENT riceve e sulla quale i regimi $D$ sono definiti, la volatilità $\sigma$ sulla variabile su cui FE opera, e l'unità di osservazione è la finestra ($N = 7\,217$), non la singola ora.
 I parametri di una cella $(E, D)$ sono le medie delle finestre che vi appartengono:
 \begin{equation}
 \hat{\alpha}_{k,j} = \frac{1}{n_{k,j}} \sum_{i: e_i=k,\, d_i=j} \hat{\alpha}_i, \qquad
 \hat{\sigma}_{k,j} = \frac{1}{n_{k,j}} \sum_{i: e_i=k,\, d_i=j} \hat{\sigma}_i.
 \label{eq:cell_params}
 \end{equation}
-
-\paragraph{Perché queste variabili.}
-La mean-reversion $\alpha$ è stimata sui livelli $r_t$ --- la variabile che MOMENT riceve e sulla quale i regimi $D$ sono definiti.
-La volatilità $\sigma$ è stimata sugli incrementi $\Delta r_t$ --- la variabile stazionaria su cui FE opera.
-Ogni parametro è misurato sulla variabile che lo cattura meglio, e l'unità di osservazione è la finestra ($N = 7\,217$), non la singola ora.
-
-\paragraph{Due modelli a confronto.}
-Confrontiamo due parametrizzazioni che differiscono nella granularità con cui $\alpha$ è stimato:
-\begin{itemize}[nosep]
-\item \textbf{Modello a un asse}: $\alpha(E)$, $\sigma(E)$ --- tutti i parametri sono mediati per regime economico $E$.
-\item \textbf{Modello a due assi}: $\alpha(E,D)$, $\sigma(E,D)$ --- i parametri sono mediati per cella dello spazio congiunto.
-\end{itemize}
+Confrontiamo due parametrizzazioni che differiscono nella granularità con cui $\alpha$ è stimato: il modello a un asse, $\alpha(E)$ e $\sigma(E)$, in cui tutti i parametri sono mediati per regime economico $E$, e il modello a due assi, $\alpha(E,D)$ e $\sigma(E,D)$, in cui i parametri sono mediati per cella dello spazio congiunto.
 
 \subsubsection{La mean-reversion varia dentro i regimi economici}
 \label{sec:alpha_variation}
@@ -983,18 +964,9 @@ L'underfitting locale non è un'imperfezione statistica trascurabile: si traduce
 Consideriamo il regime $E_3$ (Baseload, \$41/MWh, il più grande con 2\,534 finestre).
 Il modello a un asse assegna $\alpha(E_3) = 0{,}078$ (half-life 8,6\,h) a tutte le finestre.
 Ma dentro $E_3$, la half-life varia da 4\,h (regime $D$ a rapida reversione, $\alpha = 0{,}159$) a 22\,h (regime $D$ persistente, $\alpha = 0{,}031$) --- un fattore 5$\times$.
-Le conseguenze operative sono opposte e simultanee:
-
-\begin{itemize}[nosep]
-\item \textbf{Nel sotto-regime a rapida reversione} ($\alpha \approx 0{,}16$, half-life $\approx 4$\,h).
-Il modello a un asse applica $\alpha = 0{,}078$ (half-life 8,6\,h), sovrastimando la persistenza quasi del doppio.
-Le coperture vengono calibrate su uno shock che nella realtà rientra in mezza giornata.
-Il risultato è capitale immobilizzato inutilmente.
-
-\item \textbf{Nel sotto-regime persistente} ($\alpha \approx 0{,}03$, half-life $\approx 22$\,h).
-Il modello a un asse applica $\alpha = 0{,}078$ (half-life 8,6\,h), sottostimando la persistenza di un fattore 2,5$\times$.
-Le posizioni di copertura risultano insufficienti proprio nei periodi in cui gli shock durano più di un giorno.
-\end{itemize}
+Le conseguenze operative sono opposte e simultanee.
+Nel sotto-regime a rapida reversione ($\alpha \approx 0{,}16$, half-life $\approx 4$\,h), il modello a un asse applica $\alpha = 0{,}078$ (half-life 8,6\,h), sovrastimando la persistenza quasi del doppio; le coperture vengono calibrate su uno shock che nella realtà rientra in mezza giornata, con il risultato di immobilizzare capitale inutilmente.
+Nel sotto-regime persistente ($\alpha \approx 0{,}03$, half-life $\approx 22$\,h), accade l'opposto: il modello a un asse sottostima la persistenza di un fattore 2,5$\times$, e le posizioni di copertura risultano insufficienti proprio nei periodi in cui gli shock durano più di un giorno.
 
 La distorsione è asimmetrica per costruzione: un unico $\alpha$ mediato produce \emph{simultaneamente} eccesso di copertura dove il mercato è calmo e carenza di copertura dove il mercato è sotto stress.
 Questa inefficienza allocativa non è risolvibile affinando la stima di $\alpha(E)$: il problema non è nella precisione della stima, ma nel fatto che il parametro è vincolato a un asse che non lo governa.
@@ -1063,7 +1035,7 @@ La Tabella~\ref{tab:comparison} riassume i due assi prima di discuterne le impli
 Asse & & $\eta^2$ & Trans.\% & Soggiorno & Tukey \\
 \midrule
 Economico (FE)   & $K_E = 9$ & 0,495$^\text{LMP}$  & 10,2\%  & 60\,h & 36/36 \\
-Dinamico (MOMENT) & $K_D = 9$ & 0,420$^\text{ACF}$  & ---  & ---  & --- \\
+Dinamico (MOMENT) & $K_D = 9$ & 0,420$^\text{ACF}$  & ---  & ---  & 36/36 \\
 \bottomrule
 \end{tabular}
 
@@ -1096,6 +1068,20 @@ Come discusso nella Sezione~\ref{sec:repr_fe}, la separazione tra i due assi è 
 Il meccanismo specifico che rende MOMENT efficace è il suo obiettivo di pre-addestramento basato sulla ricostruzione mascherata (\emph{masked time-series modeling}), che forza l'encoder del transformer ad analizzare i pattern nel loro contesto temporale, rendendolo architetturalmente idoneo a codificare le variazioni della memoria stocastica.
 Il risultato è un asse di persistenza che governa il parametro di mean-reversion $\alpha$ ($\Delta\text{BIC} = -3\,875$, Sezione~\ref{sec:model_insufficiency}) e che nessuna combinazione di feature distribuzionali è in grado di isolare.
 
+Un'obiezione naturale è se il foundation model sia davvero necessario, o se un clustering diretto sulle autocorrelazioni campionarie produca la stessa partizione.
+Per verificarlo, abbiamo costruito una baseline che utilizza come rappresentazione le sole ACF ai lag 1, 6, 24 e 168 ore, calcolate sui livelli $r_t$, e la processa con la stessa pipeline (Diffusion Maps, ToMATo, Tukey HSD).
+La partizione risultante separa $\alpha$ in modo più netto di MOMENT ($\eta^2 = 0{,}88$ contro $0{,}38$), ma è sostanzialmente diversa dalla partizione MOMENT (ARI $= 0{,}07$) e produce un numero maggiore di regimi (14 contro 9).
+La superiorità della baseline in termini di $\eta^2$ è attesa: le ACF \emph{sono} la persistenza, calcolata direttamente, mentre MOMENT la codifica indirettamente attraverso un embedding ad alta dimensionalità.
+Il valore di MOMENT non sta nella potenza di separazione, ma nella scoperta: il foundation model identifica autonomamente che la persistenza temporale è la dimensione organizzativa dominante, senza che sia necessario specificare a priori quali feature calcolare.
+Questo rende il risultato indipendente dalle scelte di dominio e ne rafforza la generalizzabilità.
+
+Una seconda obiezione è se la quasi-ortogonalità sia un artefatto della scelta degli input, dato che FE opera su $\Delta r_t$ (senza memoria) e MOMENT su $r_t$ (senza livello di prezzo).
+Tre controfattuali empirici mostrano che non è così.
+Primo, arricchendo FE con le 4 ACF calcolate sui livelli $r_t$, la concordanza con MOMENT sale solo da ARI $= 0{,}012$ a $0{,}019$.
+Secondo, applicando MOMENT alla serie arcsinh non destagionalizzata (dove il livello di prezzo è ancora presente), la concordanza con FE resta ARI $= 0{,}001$: MOMENT non cattura il prezzo nemmeno quando potrebbe.
+Terzo, un clustering sulle sole ACF è quasi ortogonale a entrambi gli assi (ARI $= 0{,}024$ con $E$, $0{,}039$ con $D$).
+La separazione tra i due assi sopravvive a variazioni della rappresentazione e non dipende dalla specifica scelta degli input.
+
 % --- Relazione con la letteratura esistente ---
 
 La struttura a due assi si connette alla letteratura sul regime-switching in modo nuovo.
@@ -1118,6 +1104,7 @@ Variabili esogene (temperatura, prezzi spot del gas, errori di previsione delle 
 
 Diverse limitazioni devono essere riconosciute.
 Le finestre scorrevoli sovrapposte ($S/W = 6/512$) inflazionano la dimensione campionaria nominale; il numero effettivo di finestre indipendenti di 21 giorni è circa 85.
+Tuttavia, gli $\eta^2$ calcolati sul sottocampione di finestre non sovrapposte sono sostanzialmente invariati ($\eta^2(D) = 0{,}371$ contro $0{,}376$), confermando che la struttura dei regimi non è un artefatto della pseudo-replicazione.
 La partizione economica a 9 regimi rappresenta un taglio a grana fine di un gradiente di prezzo continuo; il numero di regimi distinguibili dipende dalla potenza statistica, ma il gradiente monotono e la significatività di tutte le coppie sono preservati.
 L'analisi copre un singolo mercato (ISONE) e nodo di prezzo; la generalizzazione ad altri ISO richiede ulteriori studi.
 Il foundation model è applicato zero-shot; un fine-tuning specifico per il dominio potrebbe rafforzare l'asse dinamico.

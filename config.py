@@ -43,3 +43,17 @@ FE_FEATURES = [
     "vol_24h",
     "lmp_mean", "lmp_p95", "lmp_std",
 ]
+
+# 15 features for delta-arcsinh pipeline (no ACF)
+FE_FEATURES_15 = [
+    "mean", "std", "skew", "kurt", "min", "max", "range",
+    "median", "p5", "p95", "iqr",
+    "vol_24h",
+    "lmp_mean", "lmp_p95", "lmp_std",
+]
+
+DARCSINH = {
+    "mstl_periods": [24, 168, 8760],
+    "W": 512,
+    "S": 6,
+}

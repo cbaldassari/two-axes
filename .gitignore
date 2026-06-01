@@ -35,9 +35,9 @@ remote_squaretest.py
 squaretest.py
 probe_env.py
 
-# Notebook e log
+# Notebook checkpoints e log
 *.log
-*.ipynb_checkpoints
+.ipynb_checkpoints/
 
 # LaTeX build artifacts
 paper/*.aux

@@ -1,111 +1,181 @@
-# Two-Axis Regime Detection in Electricity Markets
+# Two Quasi-Orthogonal Axes of Regime Structure in Electricity Markets
 
-**Quasi-orthogonal regimes in ISO New England: price level and temporal persistence as independent dimensions**
+**Price level and temporal persistence as independent dimensions of market state**
 
-This repository contains the code and data pipeline for the paper by C. Mari and C. Baldassari (Università della Tuscia, 2026).
+C. Mari, C. Baldassari — Universita degli Studi della Tuscia, Viterbo, Italy
 
-## Key Finding
+---
 
-Electricity market regimes are conventionally described along a single dimension — price level. We show that this view misses an entire axis of market structure. Using a fully unsupervised, data-driven pipeline, we discover **two statistically independent axes** of regime organization:
+<p align="center">
+  <img src="figures/two_axis_grid.png" width="520"/>
+</p>
 
-- **Economic axis** (Feature Engineering on Δr_t): 9 regimes separated by price level ($30–$151/MWh)
-- **Dynamic axis** (MOMENT embeddings on r_t): 9 regimes separated by temporal persistence (ACF 0.38–0.94)
+<p align="center">
+  <em>Each dot is a 512-hour window of ISO New England prices. The horizontal axis measures price level (LMP), the vertical axis measures temporal persistence (ACF at lag 6 h). All four quadrants are populated: knowing the price regime says almost nothing about the persistence regime, and vice versa.</em>
+</p>
 
-The two axes are nearly orthogonal (ARI = 0.012). Within the same price regime, the speed of mean-reversion varies by a factor of 5×.
+---
+
+## Key finding
+
+Electricity market regimes are organized along **two nearly orthogonal axes**, not one.
+
+| Axis | Representation | What it captures | Regimes |
+|------|---------------|-----------------|---------|
+| **Economic** | 15 hand-crafted features on price increments | Price level (\$29 -- \$151 /MWh) | 9 (E0--E8) |
+| **Dynamic** | MOMENT foundation model on residual levels | Temporal persistence (ACF 0.38 -- 0.94) | 9 (D0--D8) |
+
+The two partitions have **ARI = 0.012** (essentially zero concordance): knowing the price regime tells you almost nothing about the persistence regime.
+
+Within the same price regime, mean-reversion speed varies by a **factor of 5x** (half-life 4 h to 22 h) depending on the dynamic regime --- a heterogeneity invisible to any model that describes the market with a single state label.
+
+## Evidence at a glance
+
+<table>
+<tr>
+<td width="50%">
+<img src="figures/axes_evidence.png" width="100%"/>
+<br/><em>Each axis separates what the other cannot. (a) FE regimes produce a monotone price gradient. (b) MOMENT regimes do not separate price. (c) MOMENT regimes produce a monotone persistence gradient. (d) FE regimes do not separate persistence.</em>
+</td>
+<td width="50%">
+<img src="figures/ari_heatmap.png" width="100%"/>
+<br/><em>Heatmap of the 9x9 regime grid. 70 of 81 cells are populated. If axes were redundant, mass would concentrate on the diagonal.</em>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="figures/alpha_heatmap.png" width="100%"/>
+<br/><em>Mean-reversion speed in joint (E, D) space. Green = fast reversion, red = persistent. The dynamic axis governs alpha (eta-squared 37.6%), not the economic axis (16.1%).</em>
+</td>
+<td width="50%">
+<img src="figures/eta2_scatter.png" width="100%"/>
+<br/><em>Separation diagnostic. Price features cluster bottom-right (FE separates them), ACF features cluster top-left (MOMENT separates them). The diagonal pattern confirms two independent dimensions.</em>
+</td>
+</tr>
+</table>
 
 ## Pipeline
 
 ```
-LMP hourly prices
-    │
-    ▼
-Preprocessing: arcsinh → MSTL(24h, 168h, 8760h) → residual r_t
-    │
-    ├── Δr_t (stationary) ──► Feature Engineering (15 features)
-    │                              │
-    │                              ▼
-    │                         Diffusion Maps (d=2)
-    │                              │
-    │                              ▼
-    │                         ToMATo clustering (48 modes)
-    │                              │
-    │                              ▼
-    │                         Tukey HSD merge → 9 Economic regimes (E)
-    │
-    └── r_t (persistent) ──► MOMENT-1-large embedding (1024D, zero-shot)
-                                   │
-                                   ▼
-                              Diffusion Maps (d=5)
-                                   │
-                                   ▼
-                              ToMATo clustering (47 modes)
-                                   │
-                                   ▼
-                              Tukey HSD merge → 9 Dynamic regimes (D)
+LMP hourly (43,814 hours, 2021-2025)
+  |
+  arcsinh(p_t) --> MSTL (24h, 168h, 8760h) --> residual r_t
+  |                                              |
+  +--- Delta r_t (stationary) --> FE (15 features) --+
+  |                                                    |
+  +--- r_t (persistent) ----> MOMENT (1024-d emb.) --+
+                                                       |
+                              Diffusion Maps (d=2, d=5)
+                                       |
+                                  ToMATo clustering
+                                       |
+                              eta-squared diagnostic
+                                       |
+                                Tukey HSD merge
+                                       |
+                              9 Economic + 9 Dynamic regimes
+                                       |
+                                 ARI = 0.012
 ```
 
-## Repository Structure
+<p align="center">
+  <img src="figures/mstl_decomposition.png" width="520"/>
+</p>
+<p align="center"><em>MSTL decomposition of arcsinh(LMP): trend, daily/weekly/annual seasonality, and residual r_t.</em></p>
 
-```
-├── config.py                    # Central configuration
-├── isone_dataset.parquet        # ISONE LMP + fuel mix (43,814 hourly obs, 2021-2025)
-├── pipeline_darcsinh/
-│   └── run_pipeline.py          # Full pipeline script (preprocessing → regimes → validation)
-├── notebooks/
-│   └── pipeline.ipynb           # Step-by-step notebook version of the pipeline
-├── results_darcsinh/
-│   └── split_W512_S6/           # Output: labels, features, embeddings, diagnostics
-├── paper/
-│   ├── paper_v10_it.tex         # Paper (Italian)
-│   └── references.bib           # Bibliography
-└── scripts/                     # Analysis and visualization scripts
-```
+<p align="center">
+  <img src="figures/spectral_gap.png" width="700"/>
+</p>
+<p align="center"><em>Spectral gap of Diffusion Maps. FE: clear gap after lambda_2 (d=2). MOMENT: plateau through lambda_4, gap after lambda_4 (d=5).</em></p>
 
-## Quick Start
+## Notebooks
+
+Two Jupyter notebooks walk through the entire pipeline step by step:
+
+| Notebook | Content |
+|----------|---------|
+| [`01_data_and_representations.ipynb`](notebooks/01_data_and_representations.ipynb) | Data loading, arcsinh transform, MSTL decomposition, residual analysis, sliding windows, Feature Engineering (15 features), MOMENT embedding |
+| [`02_clustering_and_regimes.ipynb`](notebooks/02_clustering_and_regimes.ipynb) | Diffusion Maps, spectral gap, ToMATo clustering, eta-squared diagnostic, Tukey HSD merge, regime characterization, ARI, mean-reversion analysis, BIC model comparison |
+
+## Quick start
 
 ### Requirements
 
-```bash
-pip install numpy pandas torch scikit-learn statsmodels momentfm gudhi scipy
+```
+python >= 3.10
+numpy pandas scipy scikit-learn statsmodels
+torch momentfm          # MOMENT foundation model (GPU recommended)
+gudhi                   # ToMATo clustering
+matplotlib seaborn      # visualization (notebooks)
 ```
 
-### Run the pipeline
+Install:
 
 ```bash
-python pipeline_darcsinh/run_pipeline.py
+pip install numpy pandas scipy scikit-learn statsmodels torch momentfm gudhi matplotlib seaborn
 ```
 
-This runs the full pipeline in `split` mode (default): Feature Engineering on Δr_t, MOMENT on r_t. Results are saved to `results_darcsinh/split_W512_S6/`.
+### Run the full pipeline
 
-### Notebook
+```bash
+python pipeline_darcsinh/run_pipeline.py            # default: --mode split
+```
 
-For a step-by-step walkthrough, see `notebooks/pipeline.ipynb`.
+The pipeline reads from `results/preprocessed.parquet` (output of the preprocessing step) and writes results to `results_darcsinh/split_W512_S6/`.
 
-## Key Dependencies
+### Data
 
-| Package | Purpose |
-|---------|---------|
-| `momentfm` | MOMENT-1-large foundation model for time series embedding |
-| `gudhi` | ToMATo clustering via persistent homology |
-| `scikit-learn` | StandardScaler, PCA, KMeans, silhouette, ARI |
-| `statsmodels` | MSTL seasonal-trend decomposition |
-| `torch` | GPU-accelerated diffusion maps and MOMENT inference |
+The dataset (`isone_dataset.parquet`) contains 43,814 hourly day-ahead LMP observations for the Massachusetts Hub of ISO New England (2021--2025), sourced from the [EIA Open Data API](https://api.eia.gov/v2/electricity/rto/wholesale-data) (`respondent=ISNE`, `type=D`).
 
-## Data
+## Repository structure
 
-ISONE day-ahead LMP for Massachusetts Hub, downloaded from the [EIA Open Data API](https://api.eia.gov/v2/electricity/rto/wholesale-data) (`respondent=ISNE`, `type=D`). The dataset includes hourly LMP and EIA fuel generation mix (8 fuel types) from January 2021 to December 2025.
+```
+config.py                          # central configuration (window size, stride, model, features)
+pipeline_darcsinh/
+  run_pipeline.py                  # full dual-axis pipeline (preprocessing through model comparison)
+notebooks/
+  01_data_and_representations.ipynb
+  02_clustering_and_regimes.ipynb
+scripts/                           # auxiliary analysis scripts (robustness, figures, baselines)
+figures/                           # key figures for this README
+```
+
+## Main results
+
+| Metric | Value |
+|--------|-------|
+| Economic regimes (FE) | K_E = 9, price range \$29.7 -- \$151.1 /MWh |
+| Dynamic regimes (MOMENT) | K_D = 9, ACF range 0.38 -- 0.94 |
+| Cross-axis concordance | ARI = 0.012 |
+| eta-squared FE on LMP mean | 0.495 |
+| eta-squared MOMENT on ACF 6h | 0.420 |
+| alpha range within E3 (Baseload) | 0.031 -- 0.159 (half-life 4 h -- 22 h) |
+| Delta-BIC (two-axis vs one-axis) | -3,875 |
+| Delta-BIC on volatility | -492 |
+| GARCH eta-squared on D axis | ~0.02 (all 5 variants) |
+
+<p align="center">
+  <img src="figures/merge_process.png" width="650"/>
+</p>
+<p align="center"><em>Tukey HSD merge of the economic axis: 48 ToMATo modes collapse into 9 regimes with a clear price gradient.</em></p>
+
+<p align="center">
+  <img src="figures/mc_trajectories.png" width="700"/>
+</p>
+<p align="center"><em>Same price regime (E3, Baseload, $41/MWh), three different dynamic regimes. Empirical windows (top) and Monte Carlo simulations (bottom). Half-life ranges from 4 h (left) to 22 h (right).</em></p>
 
 ## Citation
 
 ```bibtex
-@article{mari2026twoaxes,
-  title={Quasi-orthogonal regimes in {ISO New England}: price level and
-         temporal persistence as independent dimensions},
-  author={Mari, Carlo and Baldassari, Cristiano},
-  year={2026}
+@article{mari2026quasi,
+  title   = {Quasi-Orthogonal Regimes in {ISO New England}: Price Level and
+             Temporal Persistence as Independent Dimensions},
+  author  = {Mari, Carlo and Baldassari, Cristiano},
+  year    = {2026},
+  note    = {Working paper, Universit\`a degli Studi della Tuscia}
 }
 ```
 
 ## License
 
-This project is for academic research purposes.
+MIT
