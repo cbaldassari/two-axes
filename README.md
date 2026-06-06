@@ -1,4 +1,4 @@
-# Two Quasi-Orthogonal Axes of Regime Structure in Electricity Markets
+# Near-Orthogonal Regimes in ISO New England: Price Level and Temporal Persistence as Non-Redundant Dimensions
 
 **Price level and temporal persistence as independent dimensions of market state**
 
@@ -151,7 +151,7 @@ figures/                           # key figures for this README
 | eta-squared MOMENT on ACF 6h | 0.420 |
 | alpha range within E3 (Baseload) | 0.031 -- 0.159 (half-life 4 h -- 22 h) |
 | Delta-BIC (two-axis vs one-axis) | -3,875 |
-| Delta-BIC on volatility | -492 |
+| Delta-BIC on volatility | -586 |
 | GARCH eta-squared on D axis | ~0.02 (all 5 variants) |
 
 <p align="center">
@@ -167,9 +167,9 @@ figures/                           # key figures for this README
 ## Citation
 
 ```bibtex
-@article{mari2026quasi,
-  title   = {Quasi-Orthogonal Regimes in {ISO New England}: Price Level and
-             Temporal Persistence as Independent Dimensions},
+@article{mari2026near,
+  title   = {Near-Orthogonal Regimes in {ISO New England}: Price Level and
+             Temporal Persistence as Non-Redundant Dimensions},
   author  = {Mari, Carlo and Baldassari, Cristiano},
   year    = {2026},
   note    = {Working paper, Universit\`a degli Studi della Tuscia}
