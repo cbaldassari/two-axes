@@ -7,7 +7,7 @@ C. Mari, C. Baldassari — Universita degli Studi della Tuscia, Viterbo, Italy
 ---
 
 <p align="center">
-  <img src="figures/two_axis_grid.png" width="620"/>
+  <img src="figures/two_axis_grid.png" width="520"/>
 </p>
 
 <p align="center">
