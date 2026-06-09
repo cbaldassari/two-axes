@@ -40,55 +40,89 @@ for _, row in eta.iterrows():
         groups.append("FE: distribuzionali")
 eta["group"] = groups
 
-# Display names
-display = {
+display_it = {
     "mean": "media", "std": "std Δr", "skew": "asimm.", "kurt": "curtosi",
     "min": "min", "max": "max", "range": "range", "median": "mediana",
     "p5": "Q5", "p95": "Q95", "iqr": "IQR", "vol_24h": "vol 24h",
     "lmp_mean": "LMP medio", "lmp_p95": "LMP Q95", "lmp_std": "LMP std",
     "acf_1h": "ACF 1h", "acf_6h": "ACF 6h", "acf_24h": "ACF 24h", "acf_168h": "ACF 168h",
 }
+display_en = {
+    "mean": "mean", "std": "std Δr", "skew": "skew", "kurt": "kurtosis",
+    "min": "min", "max": "max", "range": "range", "median": "median",
+    "p5": "Q5", "p95": "Q95", "iqr": "IQR", "vol_24h": "vol 24h",
+    "lmp_mean": "LMP mean", "lmp_p95": "LMP Q95", "lmp_std": "LMP std",
+    "acf_1h": "ACF 1h", "acf_6h": "ACF 6h", "acf_24h": "ACF 24h", "acf_168h": "ACF 168h",
+}
 
-fig, ax = plt.subplots(figsize=(8, 7))
-
-style = {
+style_it = {
     "FE: distribuzionali": ("o", "steelblue", 50),
     "FE: prezzo": ("s", "forestgreen", 70),
     "ACF diagnostiche": ("^", "darkorange", 70),
 }
+style_en = {
+    "FE: distribuzionali": ("o", "steelblue", 50, "FE: distributional"),
+    "FE: prezzo": ("s", "forestgreen", 70, "FE: price"),
+    "ACF diagnostiche": ("^", "darkorange", 70, "ACF diagnostic"),
+}
 
-for grp, (marker, color, size) in style.items():
-    mask = eta["group"] == grp
-    ax.scatter(eta.loc[mask, "eta2_FE"], eta.loc[mask, "eta2_MOM"],
-               c=color, marker=marker, s=size, label=grp,
-               alpha=0.85, edgecolors="white", lw=0.5, zorder=3)
+def make_eta2_figure(lang="it"):
+    is_en = lang == "en"
+    display = display_en if is_en else display_it
 
-# Diagonal
-ax.plot([0, 0.55], [0, 0.55], "k--", lw=0.5, alpha=0.3, zorder=1)
+    fig, ax = plt.subplots(figsize=(8, 7))
 
-# Labels
-texts = []
-for _, row in eta.iterrows():
-    name = display.get(row["feature"], row["feature"])
-    t = ax.annotate(name, (row["eta2_FE"], row["eta2_MOM"]),
-                    fontsize=7.5, color="#333333", zorder=4)
-    texts.append(t)
+    for grp in style_it:
+        marker, color, size = style_it[grp]
+        label = style_en[grp][3] if is_en else grp
+        mask = eta["group"] == grp
+        ax.scatter(eta.loc[mask, "eta2_FE"], eta.loc[mask, "eta2_MOM"],
+                   c=color, marker=marker, s=size, label=label,
+                   alpha=0.85, edgecolors="white", lw=0.5, zorder=3)
 
-if HAS_ADJUST:
-    adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle="-", color="gray", lw=0.4),
-                expand=(1.8, 1.8), force_text=(0.8, 0.8))
+    ax.plot([0, 0.55], [0, 0.55], "k--", lw=0.5, alpha=0.3, zorder=1)
 
-ax.set_xlabel("$\\eta^2$ rispetto alla partizione FE", fontsize=11)
-ax.set_ylabel("$\\eta^2$ rispetto alla partizione MOMENT", fontsize=11)
-ax.set_title("Diagnostica di separazione: pattern diagonale", fontsize=12)
-ax.legend(frameon=True, fontsize=9, loc="center")
-ax.set_xlim(-0.02, 0.55)
-ax.set_ylim(-0.02, 0.48)
-ax.set_aspect("equal")
-ax.grid(alpha=0.1)
+    texts = []
+    for _, row in eta.iterrows():
+        name = display.get(row["feature"], row["feature"])
+        t = ax.annotate(name, (row["eta2_FE"], row["eta2_MOM"]),
+                        fontsize=8, color="#333333", zorder=4)
+        texts.append(t)
 
-fig.tight_layout()
-out = PAPER / "eta2_scatter.png"
-fig.savefig(out, dpi=250, bbox_inches="tight", facecolor="white")
-print(f"Saved: {out}")
-plt.close(fig)
+    if HAS_ADJUST:
+        adjust_text(texts, ax=ax,
+                    arrowprops=dict(arrowstyle="-", color="gray", lw=0.4),
+                    expand=(2.2, 2.2), force_text=(1.2, 1.2),
+                    force_points=(0.5, 0.5))
+
+    if is_en:
+        ax.set_xlabel("$\\eta^2$ with respect to FE partition", fontsize=11)
+        ax.set_ylabel("$\\eta^2$ with respect to MOMENT partition", fontsize=11)
+        ax.set_title("Separation diagnostic: diagonal pattern", fontsize=12)
+    else:
+        ax.set_xlabel("$\\eta^2$ rispetto alla partizione FE", fontsize=11)
+        ax.set_ylabel("$\\eta^2$ rispetto alla partizione MOMENT", fontsize=11)
+        ax.set_title("Diagnostica di separazione: pattern diagonale", fontsize=12)
+
+    ax.legend(frameon=True, fontsize=9, loc="center")
+    ax.set_xlim(-0.02, 0.55)
+    ax.set_ylim(-0.02, 0.48)
+    ax.set_aspect("equal")
+    ax.grid(alpha=0.1)
+    fig.tight_layout()
+    return fig
+
+# IT
+fig_it = make_eta2_figure("it")
+fig_it.savefig(PAPER / "eta2_scatter.png", dpi=250, bbox_inches="tight", facecolor="white")
+print(f"Saved: {PAPER / 'eta2_scatter.png'}")
+plt.close(fig_it)
+
+# EN
+fig_en = make_eta2_figure("en")
+for dest in [PAPER / "en" / "eta2_scatter.png",
+             Path("figures") / "eta2_scatter.png",
+             PAPER / "energy_economics" / "en" / "eta2_scatter.png"]:
+    fig_en.savefig(dest, dpi=250, bbox_inches="tight", facecolor="white")
+    print(f"Saved: {dest}")
+plt.close(fig_en)

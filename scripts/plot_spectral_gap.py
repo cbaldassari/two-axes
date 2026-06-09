@@ -83,23 +83,29 @@ ax.set_title("MOMENT", fontsize=12)
 ax.set_xticks(idx)
 ax.legend(fontsize=10)
 
-# Annotate plateau and gap
-ax.annotate("plateau\n$\\lambda_2$--$\\lambda_4$",
-            xy=(3, evals_mom[3]), xytext=(7, evals_mom[2]*1.02),
-            fontsize=9, arrowprops=dict(arrowstyle="->", color="goldenrod"),
-            color="goldenrod", ha="center")
+# Annotate plateau with horizontal brace above bars 2, 3, 4
+brace_y = max(evals_mom[2], evals_mom[3], evals_mom[4]) + 0.008
+tick_h = 0.004
+ax.plot([2, 2, 3, 4, 4],
+        [brace_y, brace_y + tick_h, brace_y + 2*tick_h, brace_y + tick_h, brace_y],
+        color="goldenrod", lw=1.5, clip_on=False)
+ax.text(3, brace_y + 3*tick_h, "plateau", fontsize=9, color="goldenrod",
+        ha="center", va="bottom")
 r_mom_main = evals_mom[4] / evals_mom[5]
 ax.annotate(f"$\\lambda_4/\\lambda_5 = {r_mom_main:.2f}$",
-            xy=(4.5, evals_mom[4]), xytext=(7.5, evals_mom[4]*1.1),
+            xy=(4.5, evals_mom[5]*1.05), xytext=(8, evals_mom[1]*0.55),
             fontsize=9, arrowprops=dict(arrowstyle="->", color="darkred"),
-            color="darkred")
+            color="darkred", ha="center")
 r_mom_5 = evals_mom[5] / evals_mom[6]
 ax.annotate(f"$\\lambda_5/\\lambda_6 = {r_mom_5:.2f}$",
-            xy=(5.5, evals_mom[5]), xytext=(8.5, evals_mom[5]*0.85),
+            xy=(5.5, evals_mom[6]*1.05), xytext=(9.5, evals_mom[1]*0.45),
             fontsize=9, arrowprops=dict(arrowstyle="->", color="red"),
-            color="red")
+            color="red", ha="center")
 
 plt.tight_layout()
-plt.savefig(PAPER / "spectral_gap.png", dpi=200, bbox_inches="tight")
-print(f"\nSaved to {PAPER / 'spectral_gap.png'}")
-plt.show()
+for dest in [PAPER / "spectral_gap.png",
+             PAPER / "en" / "spectral_gap.png",
+             Path(__file__).parent.parent / "figures" / "spectral_gap.png"]:
+    plt.savefig(dest, dpi=200, bbox_inches="tight", facecolor="white")
+    print(f"Saved: {dest}")
+plt.close()

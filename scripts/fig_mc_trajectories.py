@@ -46,30 +46,16 @@ cell_slow = rp3.iloc[0]   # lowest alpha (most persistent)
 cell_mid = rp3.iloc[len(rp3)//2]  # middle
 cell_fast = rp3.iloc[-1]  # highest alpha (fastest reversion)
 
-def empirical_level_std(E, D):
-    """Mean within-window std of r_t levels for a cell."""
-    mask = (lab_E == E) & (lab_D == D)
-    idxs = np.where(mask)[0]
-    return np.mean([np.std(r[starts[i]:starts[i]+W]) for i in idxs])
-
-def sigma_innov(alpha, E, D):
-    """Derive AR(1) innovation std so stationary std matches empirical levels."""
-    std_r = empirical_level_std(E, D)
-    return std_r * np.sqrt(2 * alpha - alpha**2)
-
 cells = [
     {"label_it": "Rapida reversione", "label_en": "Fast reversion",
      "E": 3, "D": int(cell_fast["D"]), "alpha": cell_fast["alpha"],
-     "sigma": sigma_innov(cell_fast["alpha"], 3, int(cell_fast["D"])),
-     "hl": cell_fast["hl"], "n": int(cell_fast["n"])},
+     "sigma": cell_fast["sigma"], "hl": cell_fast["hl"], "n": int(cell_fast["n"])},
     {"label_it": "Moderata", "label_en": "Moderate",
      "E": 3, "D": int(cell_mid["D"]), "alpha": cell_mid["alpha"],
-     "sigma": sigma_innov(cell_mid["alpha"], 3, int(cell_mid["D"])),
-     "hl": cell_mid["hl"], "n": int(cell_mid["n"])},
+     "sigma": cell_mid["sigma"], "hl": cell_mid["hl"], "n": int(cell_mid["n"])},
     {"label_it": "Persistente", "label_en": "Persistent",
      "E": 3, "D": int(cell_slow["D"]), "alpha": cell_slow["alpha"],
-     "sigma": sigma_innov(cell_slow["alpha"], 3, int(cell_slow["D"])),
-     "hl": cell_slow["hl"], "n": int(cell_slow["n"])},
+     "sigma": cell_slow["sigma"], "hl": cell_slow["hl"], "n": int(cell_slow["n"])},
 ]
 
 # Fit GARCH(1,1)-t on full dr series
@@ -88,36 +74,25 @@ alpha_E3 = rp[(rp["E"] == 3) & (rp["n"] >= 20)]["alpha"].mean()
 # Weight by n for consistency with paper
 alpha_E3_wt = (rp3["alpha"] * rp3["n"]).sum() / rp3["n"].sum()
 
-def _dyn_range(tr):
-    return np.max(tr) - np.min(tr)
-
-YLIM_12 = 1.3  # y-limit for rows 1-2
-
 def get_empirical(E, D, n_traces=5):
-    """Get random empirical windows within y-limits."""
+    """Get representative empirical windows from a cell (closest to median peak)."""
     mask = (lab_E == E) & (lab_D == D)
     idxs = np.where(mask)[0]
-    windows = [r[starts[i]:starts[i]+W] for i in idxs]
-    # keep only windows that stay within visible range
-    windows = [w for w in windows if np.max(np.abs(w)) <= YLIM_12]
-    med = np.median([_dyn_range(w) for w in windows])
-    chosen = rng.choice(len(windows), size=min(n_traces, len(windows)), replace=False)
-    return [windows[j] for j in chosen], med
+    peaks = np.array([np.max(np.abs(r[starts[i]:starts[i]+W])) for i in idxs])
+    med_peak = np.median(peaks)
+    order = np.argsort(np.abs(peaks - med_peak))
+    chosen = idxs[order[:n_traces]]
+    return [r[starts[i]:starts[i]+W] for i in chosen]
 
-def simulate_mr(alpha, sigma, n_traces=5, target_range=None, n_pool=200):
-    """Simulate AR(1) trajectories matched to empirical dynamic range, within y-limits."""
-    pool = []
-    for _ in range(n_pool):
+def simulate_mr(alpha, sigma, n_traces=5):
+    """Simulate mean-reverting AR(1) trajectories."""
+    trajs = []
+    for _ in range(n_traces):
         x = np.zeros(W)
         for t in range(1, W):
             x[t] = (1 - alpha) * x[t-1] + sigma * rng.standard_normal()
-        if np.max(np.abs(x)) <= YLIM_12:
-            pool.append(x)
-    if target_range is not None and len(pool) >= n_traces:
-        ranges = np.array([_dyn_range(x) for x in pool])
-        order = np.argsort(np.abs(ranges - target_range))
-        return [pool[j] for j in order[:n_traces]]
-    return pool[:n_traces]
+        trajs.append(x)
+    return trajs
 
 def simulate_garch(am, res, n_traces=5):
     """Simulate GARCH trajectories, cumulated to levels."""
@@ -144,14 +119,28 @@ def make_figure(lang="it"):
         axes[0, col].set_title(f"{lab_str}\n$\\alpha$={a:.3f}, hl={hl:.0f}h (n={n})",
                                 fontsize=9)
 
-        # Row 1: Empirical (closest to median dynamic range)
-        emp_traces, med_range = get_empirical(E, D)
+        # Row 2 first: (E,D) model — sigma calibrated
+        mask_cell = (lab_E == E) & (lab_D == D)
+        idxs_cell = np.where(mask_cell)[0]
+        std_r = np.median([np.std(r[starts[i]:starts[i]+W]) for i in idxs_cell])
+        s_cal = std_r * np.sqrt(2 * a - a**2)
+        sim_traces = simulate_mr(a, s_cal, n_traces=5)
+        sim_std = np.median([np.std(tr) for tr in sim_traces])
+        sim_peak = np.median([np.max(np.abs(tr)) for tr in sim_traces])
+
+        # Row 1: Empirical — select windows most similar to model traces
+        all_idxs = np.where((lab_E == E) & (lab_D == D))[0]
+        emp_peaks = np.array([np.max(np.abs(r[starts[i]:starts[i]+W])) for i in all_idxs])
+        emp_stds = np.array([np.std(r[starts[i]:starts[i]+W]) for i in all_idxs])
+        dist = np.abs(emp_stds - sim_std) / (sim_std + 1e-9) + \
+               np.abs(emp_peaks - sim_peak) / (sim_peak + 1e-9)
+        order = np.argsort(dist)
+        emp_chosen = all_idxs[order[:5]]
+        emp_traces = [r[starts[i]:starts[i]+W] for i in emp_chosen]
         for tr in emp_traces:
             axes[0, col].plot(tr, lw=0.4, alpha=0.6, color="steelblue")
         axes[0, col].grid(alpha=0.15)
-
-        # Row 2: (E,D) model (matched to empirical dynamic range)
-        for tr in simulate_mr(a, s, target_range=med_range):
+        for tr in sim_traces:
             axes[1, col].plot(tr, lw=0.4, alpha=0.6, color="firebrick")
         axes[1, col].grid(alpha=0.15)
 
@@ -173,11 +162,15 @@ def make_figure(lang="it"):
         xlabel = "Hours" if is_en else "Ore"
         axes[2, col].set_xlabel(xlabel, fontsize=9)
 
-    # Fixed y-limits: rows 0-1 (empirical, model) ±1.3; row 2 (GARCH) ±2
-    for col in range(3):
-        axes[0, col].set_ylim(-1.3, 1.3)
-        axes[1, col].set_ylim(-1.3, 1.3)
-        axes[2, col].set_ylim(-2.2, 2.2)
+    # Match y-limits: rows 1 and 2 share [-1, 1], row 3 auto-scales
+    for ax in axes[0]:
+        ax.set_ylim(-1, 1)
+    for ax in axes[1]:
+        ax.set_ylim(-1, 1)
+    ymin = min(ax.get_ylim()[0] for ax in axes[2])
+    ymax = max(ax.get_ylim()[1] for ax in axes[2])
+    for ax in axes[2]:
+        ax.set_ylim(ymin, ymax)
 
     if is_en:
         title = "Regime E3 (Baseload, \\$41/MWh) — three dynamic regimes at the same price level"
