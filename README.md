@@ -16,6 +16,16 @@ C. Mari, C. Baldassari — Universita degli Studi della Tuscia, Viterbo, Italy
 
 ---
 
+## Abstract
+
+Electricity market regimes are conventionally described along a single dimension, the price level. We show that this view overlooks an entire axis of market structure. Two near-orthogonal axes of regime organization emerge from five years of ISO New England hourly prices: an economic axis that separates regimes by price level, and a dynamic axis that separates them by temporal persistence, i.e. how quickly the market reverts after a shock. The two axes are near-orthogonal: knowing the price regime provides almost no information about the dynamic regime, and vice versa. Within the same economic regime, the speed of mean-reversion varies by up to a factor of 5--6x in the dominant regimes, a heterogeneity invisible to any single-state model. A mean-reverting model conditioned on both axes, in which each price--persistence combination receives its own parameters, yields a statistically compelling information gain over the conventional single-axis specification and opens the way to hedging and forecasting strategies that distinguish not only how much electricity costs, but also how long the shock will persist.
+
+The discovery is made through a fully unsupervised pipeline that specifies neither the number of regimes nor predefined labels. The economic axis is derived from domain-specific descriptive statistics on the price increments. The dynamic axis is produced by a time-series foundation model applied zero-shot to the price residuals with exploratory intent; the persistence interpretation is not assumed but emerges from a post-clustering diagnostic. This use of foundation model representations for unsupervised regime discovery has no precedent in the energy markets literature. In short, the price level tells where the market is; persistence tells how long it stays there --- and the two are largely independent.
+
+**Keywords:** spot electricity markets, unsupervised regime detection, topological data analysis, time-series foundation model, diffusion maps
+
+---
+
 ## Key finding
 
 Electricity market regimes are organized along **two nearly orthogonal axes**, not one.
