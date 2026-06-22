@@ -105,7 +105,7 @@ def make_eta2_figure(lang="it"):
         ax.set_title("Diagnostica di separazione: pattern diagonale", fontsize=12)
 
     ax.legend(frameon=True, fontsize=9, loc="center")
-    ax.set_xlim(-0.02, 0.55)
+    ax.set_xlim(-0.02, 0.65)
     ax.set_ylim(-0.02, 0.48)
     ax.set_aspect("equal")
     ax.grid(alpha=0.1)
